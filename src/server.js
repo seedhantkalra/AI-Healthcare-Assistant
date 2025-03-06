@@ -1,21 +1,30 @@
-// Main Backend Server File
-// Description: This file is the main server file for the backend. It is responsible for setting up the server and connecting to the database.
-
 import express from "express";
 import dotenv from "dotenv";
-import cors from "cors";
 import { router } from "./routes.js";
+import cors from "cors";
+
 
 dotenv.config();
 
 const app = express();
-app.use(cors());
-app.use(express.json()); // Allows parsing of JSON requests
-
-// Use routes from routes.js
-app.use("/api", router);
-
 const PORT = process.env.PORT || 5000;
+
+console.log("Checking if Express is starting...");
+console.log(`PORT value from .env: ${process.env.PORT}`);
+console.log(`Server will start on port: ${PORT}`);
+
+
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use("/api", router);
+app.use(cors());
+app.use((req, res, next) => {
+    console.log(`🔹 Incoming request: ${req.method} ${req.url}`);
+    console.log("🔹 Headers:", req.headers);
+    console.log("🔹 Body:", req.body);
+    next();
+  });
+
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  console.log(`✅ Server is running on port ${PORT}`);
 });
