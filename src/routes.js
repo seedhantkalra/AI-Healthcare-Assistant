@@ -1,5 +1,3 @@
-// Handles API Routes
-
 import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
@@ -12,23 +10,36 @@ router.get("/chat", (req, res) => {
   res.json({ message: "This is the AI chat endpoint. Send a POST request with a message." });
 });
 
-
 router.post("/chat", async (req, res) => {
-  console.log("Received request at /api/chat:", req.body);
-
   try {
       const { message } = req.body;
       if (!message) {
-          console.log("Error: Message is missing in request body");
           return res.status(400).json({ error: "Message is required" });
       }
 
-      console.log("Sending request to OpenAI...");
+      if (!req.session) {
+          req.session = {};
+      }
+
+      if (!req.session.conversationHistory) {
+          req.session.conversationHistory = [];
+      }
+
+      console.log("🔹 Current Session History Before Adding:", req.session.conversationHistory);
+
+      req.session.conversationHistory.push({ role: "user", content: message });
+
+      if (req.session.conversationHistory.length > 5) {
+          req.session.conversationHistory.shift();
+      }
+
+      console.log("🔹 Updated Session History Before Sending:", req.session.conversationHistory);
+
       const response = await axios.post(
           "https://api.openai.com/v1/chat/completions",
           {
-              model: "gpt-4o mini",
-              messages: [{ role: "user", content: message }],
+              model: "gpt-4o-mini",
+              messages: req.session.conversationHistory
           },
           {
               headers: {
@@ -38,8 +49,17 @@ router.post("/chat", async (req, res) => {
           }
       );
 
-      console.log("OpenAI Response:", response.data);
-      res.json({ response: response.data.choices[0].message.content });
+      const aiMessage = {
+          role: "assistant",
+          content: response.data.choices?.[0]?.message?.content ?? "I'm sorry, but I couldn't generate a response."
+      };
+
+      req.session.conversationHistory.push(aiMessage);
+
+      console.log("🔹 Final Session History After AI Response:", req.session.conversationHistory);
+
+      res.json({ response: aiMessage.content });
+
   } catch (error) {
       console.error("Error communicating with OpenAI:", error.response?.data || error.message);
       res.status(500).json({ error: "Failed to get response from AI" });
