@@ -8,9 +8,10 @@ dotenv.config();
 
 export const router = express.Router();
 
-router.get("/", (req, res) => {
-  res.json({ message: "AI Assistant API is running!" });
+router.get("/chat", (req, res) => {
+  res.json({ message: "This is the AI chat endpoint. Send a POST request with a message." });
 });
+
 
 router.post("/chat", async (req, res) => {
   console.log("Received request at /api/chat:", req.body);
@@ -45,4 +46,4 @@ router.post("/chat", async (req, res) => {
   }
 });
 
-  
+export default router;
