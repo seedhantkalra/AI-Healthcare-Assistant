@@ -21,18 +21,18 @@ app.use(session({
   resave: false,
   saveUninitialized: false,
   cookie: {
-      maxAge: 600000,   // ✅ 10-minute session duration
-      secure: false,    // ✅ Change to true only for HTTPS
-      httpOnly: false,  // ✅ Allows client-side access to cookies
-      sameSite: "lax"   // ✅ Ensures cookies are sent with requests
+      maxAge: 600000, 
+      secure: false,    
+      httpOnly: false,  
+      sameSite: "lax"   
   }
 }));
 
 app.use((req, res, next) => {
-  console.log("🔹 SESSION ID:", req.sessionID);
-  console.log("🔹 Cookies Sent to Client:", req.headers.cookie || "No cookies received");
-  console.log("🔹 Current Session Data:", JSON.stringify(req.session, null, 2));
-  res.setHeader("Access-Control-Allow-Credentials", "true");  // ✅ Allows credentials (cookies)
+  console.log("SESSION ID:", req.sessionID);
+  console.log("Cookies Sent to Client:", req.headers.cookie || "No cookies received");
+  console.log("Current Session Data:", JSON.stringify(req.session, null, 2));
+  res.setHeader("Access-Control-Allow-Credentials", "true");  
   next();
 });
 
