@@ -5,6 +5,7 @@ import cors from "cors";
 
 
 dotenv.config();
+console.log("🔑 OpenAI API Key:", process.env.OPENAI_API_KEY ? "Loaded" : "Missing!");
 
 const app = express();
 const PORT = process.env.PORT || 5000;
