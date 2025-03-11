@@ -29,9 +29,6 @@ app.use(session({
 }));
 
 app.use((req, res, next) => {
-  console.log("SESSION ID:", req.sessionID);
-  console.log("Cookies Sent to Client:", req.headers.cookie || "No cookies received");
-  console.log("Current Session Data:", JSON.stringify(req.session, null, 2));
   res.setHeader("Access-Control-Allow-Credentials", "true");  
   next();
 });
