@@ -111,21 +111,27 @@ router.post("/chat", async (req, res) => {
 
         console.log("🔹 Updated Session Memory After AI Response:", req.session.conversationHistory);
 
+        // ✅ Remove key ideas older than 30 days
+        const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000; // 30 days in milliseconds
+        const now = Date.now();
+        conversation.keyIdeas = conversation.keyIdeas.filter(idea => now - new Date(idea.timestamp).getTime() < THIRTY_DAYS);
+
         // ✅ Extract key takeaways (long-term memory)
         const keyTakeaways = await generateKeyTakeaways([
             { role: "user", content: message },
             aiMessage
         ]);
 
+        // ✅ Store only relevant insights, filtering out unnecessary facts
         const newIdeas = keyTakeaways.filter(idea => 
-            !conversation.keyIdeas.includes(idea) && 
-            idea.length > 15 && 
+            !conversation.keyIdeas.some(existing => existing.content === idea) &&
+            idea.length > 15 &&
             !idea.toLowerCase().includes("basic information") && 
             !idea.toLowerCase().includes("general overview") 
         );
-        
+
         if (newIdeas.length > 0) {
-            conversation.keyIdeas = [...conversation.keyIdeas, ...newIdeas];
+            conversation.keyIdeas.push(...newIdeas.map(idea => ({ content: idea, timestamp: now })));
         }
         
         conversation.lastUpdated = new Date();
