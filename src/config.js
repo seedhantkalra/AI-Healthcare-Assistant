@@ -1,4 +1,4 @@
-// Manages app config
+
 
 import dotenv from "dotenv";
 dotenv.config();
