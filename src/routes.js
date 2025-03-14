@@ -147,4 +147,32 @@ router.post("/chat", async (req, res) => {
     }
 });
 
+// ✅ Handle DELETE request to clear a user's stored AI memory
+router.delete("/chat", async (req, res) => {
+    try {
+        const { userId } = req.body;
+        if (!userId) {
+            return res.status(400).json({ error: "User ID is required to clear memory." });
+        }
+
+        // ✅ Find and update user's conversation memory
+        const result = await Conversation.findOneAndUpdate(
+            { userId },
+            { $set: { keyIdeas: [] } }, // ✅ Clears stored key takeaways
+            { new: true }
+        );
+
+        if (!result) {
+            return res.status(404).json({ message: "User not found or no memory to clear." });
+        }
+
+        console.log(`🧹 Cleared memory for user: ${userId}`);
+        res.json({ message: `Successfully cleared AI memory for user: ${userId}` });
+
+    } catch (error) {
+        console.error("❌ Error clearing AI memory:", error);
+        res.status(500).json({ error: "Failed to clear AI memory." });
+    }
+});
+
 export default router;
