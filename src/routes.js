@@ -14,7 +14,13 @@ async function generateKeyTakeaways(conversationHistory) {
             {
                 model: "gpt-4o-mini",
                 messages: [
-                    { role: "system", content: "Summarize the key ideas from this conversation into 2-3 bullet points." },
+                    { 
+                        role: "system", 
+                        content: "Summarize the key **context** of this conversation in 2-3 concise points. \n\n" +
+                                 "- Do NOT include general knowledge the AI already knows. \n" +
+                                 "- Only keep **unique, discussion-specific insights**.\n" +
+                                 "- Prioritize the main **topic and user-specific details**." 
+                    },
                     ...conversationHistory
                 ]
             },
@@ -26,7 +32,15 @@ async function generateKeyTakeaways(conversationHistory) {
             }
         );
 
-        return response.data.choices?.[0]?.message?.content.split("\n") || [];
+        // ✅ Extract and filter summarized points
+        const keyTakeaways = response.data.choices?.[0]?.message?.content
+            .split("\n")
+            .map(point => point.trim())
+            .filter(point => point.length > 10) // ✅ Removes overly short or vague responses
+            .filter(point => !point.toLowerCase().includes("general information") && 
+                             !point.toLowerCase().includes("common knowledge")); // ✅ Filters out unnecessary facts
+
+        return [...new Set(keyTakeaways)]; // ✅ Ensures uniqueness
     } catch (error) {
         console.error("❌ Error generating key takeaways:", error.response?.data || error.message);
         return [];
@@ -103,8 +117,17 @@ router.post("/chat", async (req, res) => {
             aiMessage
         ]);
 
-        // ✅ Append new key takeaways to MongoDB memory (prevent duplicates)
-        conversation.keyIdeas = [...new Set([...conversation.keyIdeas, ...keyTakeaways])];
+        const newIdeas = keyTakeaways.filter(idea => 
+            !conversation.keyIdeas.includes(idea) && 
+            idea.length > 15 && 
+            !idea.toLowerCase().includes("basic information") && 
+            !idea.toLowerCase().includes("general overview") 
+        );
+        
+        if (newIdeas.length > 0) {
+            conversation.keyIdeas = [...conversation.keyIdeas, ...newIdeas];
+        }
+        
         conversation.lastUpdated = new Date();
         await conversation.save();
 
