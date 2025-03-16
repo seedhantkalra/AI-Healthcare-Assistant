@@ -147,7 +147,7 @@ router.post("/chat", async (req, res) => {
     }
 });
 
-// ✅ Handle DELETE request to clear a user's stored AI memory
+
 router.delete("/chat", async (req, res) => {
     try {
         const { userId } = req.body;
@@ -155,10 +155,10 @@ router.delete("/chat", async (req, res) => {
             return res.status(400).json({ error: "User ID is required to clear memory." });
         }
 
-        // ✅ Find and update user's conversation memory
+    
         const result = await Conversation.findOneAndUpdate(
             { userId },
-            { $set: { keyIdeas: [] } }, // ✅ Clears stored key takeaways
+            { $set: { keyIdeas: [] } }, 
             { new: true }
         );
 
