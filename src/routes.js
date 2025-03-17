@@ -83,7 +83,10 @@ router.post("/chat", async (req, res) => {
 
         const userContext = [];
         if (conversation.userId === req.body.userId) { // ✅ Ensures AI only retrieves data for the current user
-        if (conversation.name) userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
+        if (conversation.name && conversation.name !== "ERROR: Unable to decrypt") {
+            userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
+        }
+            
         if (conversation.jobTitle) userContext.push({ role: "system", content: `The user's job title is ${conversation.jobTitle}.` });
         if (conversation.workplace) userContext.push({ role: "system", content: `The user works at ${conversation.workplace}.` });
 
