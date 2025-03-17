@@ -81,13 +81,24 @@ router.post("/chat", async (req, res) => {
 
         console.log("🔹 Session Short-Term Memory Before Sending:", req.session.conversationHistory);
 
-        // ✅ Merge short-term memory + key ideas for AI
         const userContext = [];
+        if (conversation.userId === req.body.userId) { // ✅ Ensures AI only retrieves data for the current user
         if (conversation.name) userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
         if (conversation.jobTitle) userContext.push({ role: "system", content: `The user's job title is ${conversation.jobTitle}.` });
         if (conversation.workplace) userContext.push({ role: "system", content: `The user works at ${conversation.workplace}.` });
 
+        userContext.push({ role: "system", content: "Only use the user's stored details to personalize responses, but do not expose stored information unless explicitly asked." });
+    } else {
+        console.warn(`⚠️ Unauthorized attempt to access data for userId: ${req.body.userId}`);
+    }
+
+
         const memoryContext = [...userContext, ...conversation.keyIdeas.map(idea => ({ role: "system", content: idea.content }))];
+
+        if (!conversation || conversation.userId !== req.body.userId) {
+            console.warn(`⚠️ Unauthorized access attempt detected for userId: ${req.body.userId}`);
+            return res.status(403).json({ error: "Unauthorized access." });
+        }
 
         const response = await axios.post(
             "https://api.openai.com/v1/chat/completions",
