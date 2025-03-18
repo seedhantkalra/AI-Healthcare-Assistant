@@ -1,20 +1,23 @@
 import mongoose from "mongoose";
 import CryptoJS from "crypto-js";
 
+const safeDecrypt = (value, fieldName) => {
+    if (!value) return null;
+    try {
+        const decryptedText = CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
+        return decryptedText || `ERROR: Unable to decrypt ${fieldName}`;
+    } catch (error) {
+        console.error(`❌ Error decrypting ${fieldName}:`, error.message);
+        return `ERROR: Unable to decrypt ${fieldName}`;
+    }
+};
+
 const keyIdeaSchema = new mongoose.Schema({
     content: { 
         type: String, 
         required: true, 
         set: value => CryptoJS.AES.encrypt(value, process.env.ENCRYPTION_KEY).toString(),
-        get: value => {
-            if (!value) return null;
-            try {
-                return CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-                console.error("❌ Error decrypting key idea:", error.message);
-                return "ERROR: Unable to decrypt";
-            }
-        }
+        get: value => safeDecrypt(value, "key idea")
     },
     timestamp: { type: Date, default: Date.now }
 });
@@ -25,43 +28,19 @@ const conversationSchema = new mongoose.Schema({
         type: String, 
         default: null, 
         set: value => value ? CryptoJS.AES.encrypt(value, process.env.ENCRYPTION_KEY).toString() : null,
-        get: value => {
-            if (!value) return null;
-            try {
-                return CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-                console.error("❌ Error decrypting name:", error.message);
-                return "ERROR: Unable to decrypt";
-            }
-        }
+        get: value => safeDecrypt(value, "name")
     },
     jobTitle: { 
         type: String, 
         default: null,
         set: value => value ? CryptoJS.AES.encrypt(value, process.env.ENCRYPTION_KEY).toString() : null,
-        get: value => {
-            if (!value) return null;
-            try {
-                return CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-                console.error("❌ Error decrypting job title:", error.message);
-                return "ERROR: Unable to decrypt";
-            }
-        }
+        get: value => safeDecrypt(value, "job title")
     },
     workplace: { 
         type: String, 
         default: null,
         set: value => value ? CryptoJS.AES.encrypt(value, process.env.ENCRYPTION_KEY).toString() : null,
-        get: value => {
-            if (!value) return null;
-            try {
-                return CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
-            } catch (error) {
-                console.error("❌ Error decrypting workplace:", error.message);
-                return "ERROR: Unable to decrypt";
-            }
-        }
+        get: value => safeDecrypt(value, "workplace")
     },
     keyIdeas: [keyIdeaSchema],  
     lastUpdated: { type: Date, default: Date.now }
