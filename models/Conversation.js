@@ -2,7 +2,9 @@ import mongoose from "mongoose";
 import CryptoJS from "crypto-js";
 
 const safeDecrypt = (value, fieldName) => {
-    if (!value) return null;
+    if (!value || typeof value !== "string") return null;
+    if (!value.startsWith("U2FsdGVkX1")) return value; // If not encrypted, return as is
+
     try {
         const decryptedText = CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
         return decryptedText || `ERROR: Unable to decrypt ${fieldName}`;
