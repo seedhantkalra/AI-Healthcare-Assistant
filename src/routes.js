@@ -32,15 +32,14 @@ async function generateKeyTakeaways(conversationHistory) {
             }
         );
 
-        // ✅ Extract and filter summarized points
         const keyTakeaways = response.data.choices?.[0]?.message?.content
             .split("\n")
             .map(point => point.trim())
-            .filter(point => point.length > 10) // ✅ Removes overly short or vague responses
+            .filter(point => point.length > 10)
             .filter(point => !point.toLowerCase().includes("general information") && 
-                             !point.toLowerCase().includes("common knowledge")); // ✅ Filters out unnecessary facts
+                             !point.toLowerCase().includes("common knowledge"));
 
-        return [...new Set(keyTakeaways)]; // ✅ Ensures uniqueness
+        return [...new Set(keyTakeaways)];
     } catch (error) {
         console.error("❌ Error generating key takeaways:", error.response?.data || error.message);
         return [];
@@ -49,10 +48,10 @@ async function generateKeyTakeaways(conversationHistory) {
 
 // ✅ Handle GET requests to /api/chat
 router.get("/chat", (req, res) => {
-  res.json({ message: "This is the AI chat endpoint. Send a POST request with a message." });
+    res.json({ message: "This is the AI chat endpoint. Send a POST request with a message." });
 });
 
-// ✅ Handle POST requests to /api/chat (Short-Term + Long-Term Memory)
+// ✅ Handle POST requests to /api/chat
 router.post("/chat", async (req, res) => {
     try {
         const { userId, message } = req.body;
@@ -60,21 +59,17 @@ router.post("/chat", async (req, res) => {
             return res.status(400).json({ error: "User ID and message are required." });
         }
 
-        // ✅ Retrieve past key ideas for the user (Long-Term Memory)
         let conversation = await Conversation.findOne({ userId });
         if (!conversation) {
             conversation = new Conversation({ userId, keyIdeas: [] });
         }
 
-        // ✅ SHORT-TERM MEMORY: Store user messages within session
         if (!req.session.conversationHistory) {
             req.session.conversationHistory = [];
         }
 
-        // ✅ Append new message to session history (short-term memory)
         req.session.conversationHistory.push({ role: "user", content: message });
 
-        // ✅ Limit short-term memory to last 5 messages
         if (req.session.conversationHistory.length > 5) {
             req.session.conversationHistory.shift();
         }
@@ -82,25 +77,34 @@ router.post("/chat", async (req, res) => {
         console.log("🔹 Session Short-Term Memory Before Sending:", req.session.conversationHistory);
 
         const userContext = [];
-        if (conversation.userId === req.body.userId) { // ✅ Ensures AI only retrieves data for the current user
         if (conversation.name && conversation.name !== "ERROR: Unable to decrypt") {
             userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
         }
-            
         if (conversation.jobTitle) userContext.push({ role: "system", content: `The user's job title is ${conversation.jobTitle}.` });
         if (conversation.workplace) userContext.push({ role: "system", content: `The user works at ${conversation.workplace}.` });
 
-        userContext.push({ role: "system", content: "Only use the user's stored details to personalize responses, but do not expose stored information unless explicitly asked." });
-    } else {
-        console.warn(`⚠️ Unauthorized attempt to access data for userId: ${req.body.userId}`);
-    }
+        // ✅ AI is now more flexible but still redirects users back to relevant topics
+        userContext.push({ 
+            role: "system", 
+            content: "You are a healthcare and workplace assistant. Your primary role is to assist with healthcare and workplace-related topics. " +
+                     "However, you can answer brief general knowledge questions when necessary. " +
+                     "If a user asks something outside your main domain, provide a short answer and then guide them back by saying: " +
+                     "'I specialize in healthcare and workplace topics. Let me know if you need help in those areas.'" 
+        });
 
+        const memoryContext = [...userContext, ...conversation.keyIdeas.slice(-5).map(idea => ({
+            role: "system",
+            content: `Key insight: ${idea.content}`
+        }))];
 
-        const memoryContext = [...userContext, ...conversation.keyIdeas.map(idea => ({ role: "system", content: idea.content }))];
-
-        if (!conversation || conversation.userId !== req.body.userId) {
-            console.warn(`⚠️ Unauthorized access attempt detected for userId: ${req.body.userId}`);
+        if (!conversation) {
+            console.warn(`⚠️ Unauthorized access attempt: No conversation found for userId ${req.body.userId}`);
             return res.status(403).json({ error: "Unauthorized access." });
+        }
+
+        if (conversation.userId !== req.body.userId) {
+            console.warn(`⚠️ SECURITY WARNING: User '${req.body.userId}' tried to access '${conversation.userId}' data!`);
+            return res.status(403).json({ error: "Unauthorized access. You do not have permission to view this information." });
         }
 
         const response = await axios.post(
@@ -108,8 +112,8 @@ router.post("/chat", async (req, res) => {
             {
                 model: "gpt-4o-mini",
                 messages: [
-                    ...memoryContext, // ✅ Long-term memory
-                    ...req.session.conversationHistory // ✅ Short-term memory
+                    ...memoryContext,
+                    ...req.session.conversationHistory
                 ]
             },
             {
@@ -120,7 +124,6 @@ router.post("/chat", async (req, res) => {
             }
         );
 
-        // ✅ Get AI response with error handling
         const aiMessageContent = response.data.choices?.[0]?.message?.content;
         if (!aiMessageContent) {
             console.error("❌ Error: AI did not return a response.");
@@ -129,23 +132,19 @@ router.post("/chat", async (req, res) => {
 
         const aiMessage = { role: "assistant", content: aiMessageContent };
 
-        // ✅ Append AI response to short-term memory
         req.session.conversationHistory.push(aiMessage);
 
         console.log("🔹 Updated Session Memory After AI Response:", req.session.conversationHistory);
 
-        // ✅ Remove key ideas older than 30 days
         const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
         const now = Date.now();
         conversation.keyIdeas = conversation.keyIdeas.filter(idea => now - new Date(idea.timestamp).getTime() < THIRTY_DAYS);
 
-        // ✅ Extract key takeaways (long-term memory)
         const keyTakeaways = await generateKeyTakeaways([
             { role: "user", content: message },
             aiMessage
         ]);
 
-        // ✅ Store only relevant insights, filtering out unnecessary facts
         const newIdeas = keyTakeaways.filter(idea => 
             !conversation.keyIdeas.some(existing => existing.content === idea) &&
             idea.length > 15 &&
@@ -167,34 +166,6 @@ router.post("/chat", async (req, res) => {
     } catch (error) {
         console.error("❌ Error communicating with OpenAI:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to get response from AI" });
-    }
-});
-
-// ✅ Handle POST request to store user details
-router.post("/user", async (req, res) => {
-    try {
-        const { userId, name, jobTitle, workplace } = req.body;
-        if (!userId) {
-            return res.status(400).json({ error: "User ID is required." });
-        }
-
-        // ✅ Find or create a user profile
-        let conversation = await Conversation.findOne({ userId });
-        if (!conversation) {
-            conversation = new Conversation({ userId, name, jobTitle, workplace, keyIdeas: [] });
-        } else {
-            // ✅ Update user details with input validation
-            if (name && name.trim().length > 0) conversation.name = name.trim();
-            if (jobTitle && jobTitle.trim().length > 0) conversation.jobTitle = jobTitle.trim();
-            if (workplace && workplace.trim().length > 0) conversation.workplace = workplace.trim();
-        }
-
-        await conversation.save();
-        res.json({ message: "User details updated successfully.", userData: conversation });
-
-    } catch (error) {
-        console.error("❌ Error updating user details:", error);
-        res.status(500).json({ error: "Failed to update user details." });
     }
 });
 
