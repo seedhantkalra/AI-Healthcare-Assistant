@@ -8,23 +8,21 @@ import User from "../models/User.js";
 dotenv.config();
 export const router = express.Router();
 
+// ✅ AUTH: Register user
 router.post("/register", async (req, res) => {
-    try {
-      const { email, password } = req.body;
-      console.log("📩 Registering user:", email);
-  
-      const passwordHash = await bcrypt.hash(password, 10);
-  
-      const user = await User.create({ email, passwordHash });
-      req.session.userId = user._id;
-  
-      res.json({ message: "✅ Registered & logged in", userId: user._id });
-    } catch (err) {
-      console.error("❌ Registration Error:", err); // <- more detailed logging
-      res.status(500).json({ error: "Registration failed." });
-    }
-  });
-  
+  try {
+    const { email, password } = req.body;
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    const user = await User.create({ email, passwordHash });
+    req.session.userId = user._id;
+
+    res.json({ message: "✅ Registered & logged in", userId: user._id });
+  } catch (err) {
+    console.error("❌ Registration Error:", err);
+    res.status(500).json({ error: "Registration failed." });
+  }
+});
 
 // ✅ AUTH: Login user
 router.post("/login", async (req, res) => {
@@ -38,7 +36,7 @@ router.post("/login", async (req, res) => {
     req.session.userId = user._id;
     res.json({ message: "✅ Logged in", userId: user._id });
   } catch (err) {
-    console.error(err);
+    console.error("❌ Login Error:", err);
     res.status(500).json({ error: "Login failed." });
   }
 });
@@ -47,6 +45,35 @@ router.post("/login", async (req, res) => {
 router.get("/logout", (req, res) => {
   req.session.destroy();
   res.json({ message: "✅ Logged out" });
+});
+
+// ✅ PROFILE: Update user info (name, jobTitle, workplace)
+router.put("/update-profile", async (req, res) => {
+  try {
+    const { userId, name, jobTitle, workplace } = req.body;
+    const requestorId = req.headers["x-user-id"];
+
+    if (!userId || requestorId !== userId) {
+      return res.status(403).json({ error: "Unauthorized access." });
+    }
+
+    const conversation = await Conversation.findOne({ userId });
+    if (!conversation) {
+      return res.status(404).json({ error: "User profile not found." });
+    }
+
+    if (name) conversation.name = name;
+    if (jobTitle) conversation.jobTitle = jobTitle;
+    if (workplace) conversation.workplace = workplace;
+    conversation.lastUpdated = new Date();
+
+    await conversation.save();
+
+    res.json({ message: "✅ Profile updated", profile: conversation });
+  } catch (err) {
+    console.error("❌ Profile Update Error:", err);
+    res.status(500).json({ error: "Failed to update profile." });
+  }
 });
 
 async function generateKeyTakeaways(conversationHistory) {
