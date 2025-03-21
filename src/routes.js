@@ -164,9 +164,10 @@ router.post("/chat", async (req, res) => {
         res.json({ response: aiMessage.content });
 
     } catch (error) {
-        console.error("❌ Error communicating with OpenAI:", error.response?.data || error.message);
+        console.error("Error communicating with OpenAI:", error.response?.data || error.message);
         res.status(500).json({ error: "Failed to get response from AI" });
     }
 });
 
 export default router;
+
