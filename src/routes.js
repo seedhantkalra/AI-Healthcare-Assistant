@@ -2,6 +2,8 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 import Conversation from "../models/Conversation.js";
+import bcrypt from "bcrypt";
+import User from "../models/User.js"
 
 dotenv.config();
 export const router = express.Router();
@@ -88,12 +90,29 @@ router.post("/chat", async (req, res) => {
     }
 
     userContext.push({
-      role: "system",
-      content:
-        "You are a healthcare and workplace assistant. Your primary role is to assist with healthcare and workplace-related topics. " +
-        "However, you can answer brief general knowledge questions when necessary. " +
-        "If a user asks something outside your main domain, provide a short answer and then guide them back by saying: " +
-        "'I specialize in healthcare and workplace topics. Let me know if you need help in those areas.'",
+        role: "system",
+        content: `You are an AI assistant specializing in healthcare and workplace support. 
+      You are NOT a general assistant and should not answer off-topic questions.
+      
+      ✅ Your core areas include:
+      - Providing physical and mental health tips for workers
+      - Helping with stress, posture, fatigue, time management, burnout
+      - Workplace accommodations, shift schedules, and health routines
+      
+      ❌ Avoid general topics like math, geography, politics, pop culture.
+      If asked, give a brief answer and redirect by saying:
+      "I specialize in healthcare and workplace topics. Let me know if you need help in those areas."
+      
+      Here are examples of GOOD questions:
+      - "How can I manage stress during a busy shift?"
+      - "What are good stretches for neck pain?"
+      - "How should I prepare for a night shift as a nurse?"
+      
+      BAD examples (redirect):
+      - "What’s the capital of France?"
+      - "Tell me a joke."
+      - "How do I invest in crypto?"
+      `
     });
 
     const memoryContext = [
