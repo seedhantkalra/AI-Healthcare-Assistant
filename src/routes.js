@@ -3,10 +3,51 @@ import axios from "axios";
 import dotenv from "dotenv";
 import Conversation from "../models/Conversation.js";
 import bcrypt from "bcrypt";
-import User from "../models/User.js"
+import User from "../models/User.js";
 
 dotenv.config();
 export const router = express.Router();
+
+router.post("/register", async (req, res) => {
+    try {
+      const { email, password } = req.body;
+      console.log("📩 Registering user:", email);
+  
+      const passwordHash = await bcrypt.hash(password, 10);
+  
+      const user = await User.create({ email, passwordHash });
+      req.session.userId = user._id;
+  
+      res.json({ message: "✅ Registered & logged in", userId: user._id });
+    } catch (err) {
+      console.error("❌ Registration Error:", err); // <- more detailed logging
+      res.status(500).json({ error: "Registration failed." });
+    }
+  });
+  
+
+// ✅ AUTH: Login user
+router.post("/login", async (req, res) => {
+  try {
+    const { email, password } = req.body;
+    const user = await User.findOne({ email });
+    if (!user || !(await user.validatePassword(password))) {
+      return res.status(401).json({ error: "Invalid credentials" });
+    }
+
+    req.session.userId = user._id;
+    res.json({ message: "✅ Logged in", userId: user._id });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "Login failed." });
+  }
+});
+
+// ✅ AUTH: Logout user
+router.get("/logout", (req, res) => {
+  req.session.destroy();
+  res.json({ message: "✅ Logged out" });
+});
 
 async function generateKeyTakeaways(conversationHistory) {
   try {
@@ -90,29 +131,29 @@ router.post("/chat", async (req, res) => {
     }
 
     userContext.push({
-        role: "system",
-        content: `You are an AI assistant specializing in healthcare and workplace support. 
-      You are NOT a general assistant and should not answer off-topic questions.
-      
-      ✅ Your core areas include:
-      - Providing physical and mental health tips for workers
-      - Helping with stress, posture, fatigue, time management, burnout
-      - Workplace accommodations, shift schedules, and health routines
-      
-      ❌ Avoid general topics like math, geography, politics, pop culture.
-      If asked, give a brief answer and redirect by saying:
-      "I specialize in healthcare and workplace topics. Let me know if you need help in those areas."
-      
-      Here are examples of GOOD questions:
-      - "How can I manage stress during a busy shift?"
-      - "What are good stretches for neck pain?"
-      - "How should I prepare for a night shift as a nurse?"
-      
-      BAD examples (redirect):
-      - "What’s the capital of France?"
-      - "Tell me a joke."
-      - "How do I invest in crypto?"
-      `
+      role: "system",
+      content: `You are an AI assistant specializing in healthcare and workplace support. 
+You are NOT a general assistant and should not answer off-topic questions.
+
+✅ Your core areas include:
+- Providing physical and mental health tips for workers
+- Helping with stress, posture, fatigue, time management, burnout
+- Workplace accommodations, shift schedules, and health routines
+
+❌ Avoid general topics like math, geography, politics, pop culture.
+If asked, give a brief answer and redirect by saying:
+"I specialize in healthcare and workplace topics. Let me know if you need help in those areas."
+
+Here are examples of GOOD questions:
+- "How can I manage stress during a busy shift?"
+- "What are good stretches for neck pain?"
+- "How should I prepare for a night shift as a nurse?"
+
+BAD examples (redirect):
+- "What’s the capital of France?"
+- "Tell me a joke."
+- "How do I invest in crypto?"
+`
     });
 
     const memoryContext = [
