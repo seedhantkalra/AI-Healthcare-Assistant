@@ -269,9 +269,9 @@ router.post("/create-user", async (req, res) => {
       workplace,
     });
 
-    res.json({ message: "✅ User created!", conversation });
+    res.json({ message: "User created!", conversation });
   } catch (error) {
-    console.error("❌ Failed to create user:", error);
+    console.error("Failed to create user:", error);
     res.status(500).json({ error: "Failed to create user" });
   }
 });
