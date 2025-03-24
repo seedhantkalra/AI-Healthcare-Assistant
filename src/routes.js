@@ -207,7 +207,7 @@ BAD examples (redirect):
 
     const aiMessageContent = response.data.choices?.[0]?.message?.content;
     if (!aiMessageContent) {
-      console.error("❌ Error: AI did not return a response.");
+      console.error("Error: AI did not return a response.");
       return res.status(500).json({ error: "AI did not generate a response." });
     }
 
