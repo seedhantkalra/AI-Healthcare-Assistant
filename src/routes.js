@@ -214,7 +214,7 @@ BAD examples (redirect):
     const aiMessage = { role: "assistant", content: aiMessageContent };
     req.session.conversationHistory.push(aiMessage);
 
-    console.log("🔹 Updated Session Memory After AI Response:", req.session.conversationHistory);
+    console.log( "Updated Session Memory After AI Response:", req.session.conversationHistory);
 
     const keyTakeaways = await generateKeyTakeaways([
       { role: "user", content: message },
