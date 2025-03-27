@@ -1,0 +1,14 @@
+.chat-message {
+    margin-bottom: 0.5rem;
+  }
+  
+  .chat-message.user {
+    text-align: right;
+    color: #0077cc;
+  }
+  
+  .chat-message.assistant {
+    text-align: left;
+    color: #222;
+  }
+  

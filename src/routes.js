@@ -4,8 +4,6 @@ import dotenv from "dotenv";
 import Conversation from "../models/Conversation.js";
 import bcrypt from "bcrypt";
 import User from "../models/User.js";
-import { encryptionSecret } from './config.js';
-console.log("🔐 ENCRYPTION_SECRET =", encryptionSecret);
 
 dotenv.config();
 export const router = express.Router();
