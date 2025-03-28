@@ -34,15 +34,17 @@ const Login: React.FC<Props> = ({ onLogin }) => {
   };
 
   return (
-    <div className="login-container">
-      <h2>Welcome 👋</h2>
-      <p>Enter your details to get started</p>
-      <form onSubmit={handleSubmit} className="login-form">
-        <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" required />
-        <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Job Title" required />
-        <input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Workplace" required />
-        <button type="submit">Enter Chat</button>
-      </form>
+    <div className="login-wrapper">
+      <div className="login-container">
+        <h2>Welcome 👋</h2>
+        <p>Enter your details to get started</p>
+        <form onSubmit={handleSubmit} className="login-form">
+          <input value={name} onChange={(e) => setName(e.target.value)} placeholder="Full Name" required />
+          <input value={jobTitle} onChange={(e) => setJobTitle(e.target.value)} placeholder="Job Title" required />
+          <input value={workplace} onChange={(e) => setWorkplace(e.target.value)} placeholder="Workplace" required />
+          <button type="submit">Enter Chat</button>
+        </form>
+      </div>
     </div>
   );
 };
