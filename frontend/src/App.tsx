@@ -24,6 +24,20 @@ function App() {
 
   const activeThread = threads.find(t => t.id === activeThreadId);
 
+  // ✅ Ensure one thread exists on load
+  useEffect(() => {
+    if (threads.length === 0) {
+      const newId = uuidv4();
+      const newThread: Thread = {
+        id: newId,
+        title: 'Chat 1',
+        messages: [],
+      };
+      setThreads([newThread]);
+      setActiveThreadId(newId);
+    }
+  }, []);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [activeThread?.messages]);
@@ -41,6 +55,18 @@ function App() {
 
   const switchThread = (id: string) => {
     setActiveThreadId(id);
+  };
+
+  const deleteThread = (id: string) => {
+    setThreads(prev => {
+      const updated = prev.filter(thread => thread.id !== id);
+      if (id === activeThreadId && updated.length > 0) {
+        setActiveThreadId(updated[0].id);
+      } else if (updated.length === 0) {
+        setActiveThreadId('');
+      }
+      return updated;
+    });
   };
 
   const sendMessage = async () => {
@@ -93,15 +119,23 @@ function App() {
             <img src="/icon-stethoscope.svg" alt="icon" className="icon" />
             AI Healthcare Assistant
           </h1>
-          <button onClick={startNewChat}>+ New Chat</button>
         </div>
 
-        <div className="thread-select">
-          <select value={activeThreadId} onChange={(e) => switchThread(e.target.value)}>
-            {threads.map(thread => (
-              <option key={thread.id} value={thread.id}>{thread.title}</option>
-            ))}
-          </select>
+        <div className="tab-bar">
+          {threads.map(thread => (
+            <div
+              key={thread.id}
+              className={`tab ${thread.id === activeThreadId ? 'active' : ''}`}
+            >
+              <span className="tab-title" onClick={() => switchThread(thread.id)}>
+                {thread.title}
+              </span>
+              <button className="close-tab" onClick={() => deleteThread(thread.id)}>×</button>
+            </div>
+          ))}
+          <div className="tab new-chat" onClick={startNewChat}>
+            + New Chat
+          </div>
         </div>
 
         <div className="chat-box">
