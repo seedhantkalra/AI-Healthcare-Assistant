@@ -2,27 +2,57 @@ import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import ChatMessage from './ChatMessage';
+import { v4 as uuidv4 } from 'uuid';
 
 type Message = {
   role: 'user' | 'assistant';
   content: string;
 };
 
+type Thread = {
+  id: string;
+  title: string;
+  messages: Message[];
+};
+
 function App() {
-  const [messages, setMessages] = useState<Message[]>([]);
+  const [threads, setThreads] = useState<Thread[]>([]);
+  const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
+  const activeThread = threads.find(t => t.id === activeThreadId);
+
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
+  }, [activeThread?.messages]);
+
+  const startNewChat = () => {
+    const newId = uuidv4();
+    const newThread: Thread = {
+      id: newId,
+      title: `Chat ${threads.length + 1}`,
+      messages: [],
+    };
+    setThreads(prev => [...prev, newThread]);
+    setActiveThreadId(newId);
+  };
+
+  const switchThread = (id: string) => {
+    setActiveThreadId(id);
+  };
 
   const sendMessage = async () => {
-    if (!input.trim() || loading) return;
+    if (!input.trim() || loading || !activeThread) return;
 
     const userMessage: Message = { role: 'user', content: input };
-    setMessages((prev) => [...prev, userMessage]);
+    const updatedThreads = threads.map(thread =>
+      thread.id === activeThreadId
+        ? { ...thread, messages: [...thread.messages, userMessage] }
+        : thread
+    );
+    setThreads(updatedThreads);
     setInput('');
     setLoading(true);
 
@@ -34,7 +64,14 @@ function App() {
         { headers: { 'x-user-id': userId } }
       );
       const aiMessage: Message = { role: 'assistant', content: response.data.response };
-      setMessages((prev) => [...prev, aiMessage]);
+
+      setThreads(prev =>
+        prev.map(thread =>
+          thread.id === activeThreadId
+            ? { ...thread, messages: [...thread.messages, aiMessage] }
+            : thread
+        )
+      );
     } catch (err) {
       console.error('Error contacting AI:', err);
     } finally {
@@ -51,13 +88,24 @@ function App() {
   return (
     <div className="chat-wrapper">
       <div className="app-container">
-        <h1 className="header">
-          <img src="/icon-stethoscope.svg" alt="icon" className="icon" />
-          AI Healthcare Assistant
-        </h1>
+        <div className="top-bar">
+          <h1 className="header">
+            <img src="/icon-stethoscope.svg" alt="icon" className="icon" />
+            AI Healthcare Assistant
+          </h1>
+          <button onClick={startNewChat}>+ New Chat</button>
+        </div>
+
+        <div className="thread-select">
+          <select value={activeThreadId} onChange={(e) => switchThread(e.target.value)}>
+            {threads.map(thread => (
+              <option key={thread.id} value={thread.id}>{thread.title}</option>
+            ))}
+          </select>
+        </div>
 
         <div className="chat-box">
-          {messages.map((msg, idx) => (
+          {activeThread?.messages.map((msg, idx) => (
             <ChatMessage key={idx} role={msg.role} content={msg.content} />
           ))}
           {loading && <div className="loading">AI is typing...</div>}
