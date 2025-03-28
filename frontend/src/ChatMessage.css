@@ -14,15 +14,13 @@
 .chat-message.user {
   background-color: #dbeafe;
   color: #1e40af;
-  margin-left: auto;
+  align-self: flex-end; /* 👈 right side */
   text-align: left;
-  align-self: flex-end;
 }
 
 .chat-message.assistant {
   background-color: #f3f4f6;
   color: #111827;
-  margin-right: auto;
+  align-self: flex-start; /* 👈 left side */
   text-align: left;
-  align-self: flex-start;
 }

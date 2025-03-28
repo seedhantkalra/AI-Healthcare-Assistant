@@ -24,7 +24,8 @@ h1 {
 }
 
 .chat-box {
-  border: none;
+  display: flex;
+  flex-direction: column;   
   background: rgba(255, 255, 255, 0.8);
   padding: 1rem;
   height: 420px;
