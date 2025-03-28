@@ -26,7 +26,7 @@ function App() {
     setLoading(true);
 
     try {
-      const userId = "test-user-123"; // Replace this with your actual userId
+      const userId = localStorage.getItem('userId') || '';
       const response = await axios.post(
         '/api/chat',
         { message: input, userId },
