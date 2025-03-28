@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import ChatMessage from './ChatMessage';
@@ -12,11 +12,16 @@ function App() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const bottomRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
+  }, [messages]);
 
   const sendMessage = async () => {
     if (!input.trim()) return;
     const userMessage: Message = { role: 'user', content: input };
-    setMessages([...messages, userMessage]);
+    setMessages((prev) => [...prev, userMessage]);
     setInput('');
     setLoading(true);
 
@@ -44,12 +49,16 @@ function App() {
 
   return (
     <div className="app">
-      <h1>🩺 AI Healthcare Assistant</h1>
+      <h1 className="header">
+        <img src="/icon-stethoscope.svg" alt="icon" className="icon" />
+        AI Healthcare Assistant
+      </h1>
       <div className="chat-box">
         {messages.map((msg, idx) => (
           <ChatMessage key={idx} role={msg.role} content={msg.content} />
         ))}
         {loading && <div className="loading">AI is typing...</div>}
+        <div ref={bottomRef} />
       </div>
       <div className="input-area">
         <input

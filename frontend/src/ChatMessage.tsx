@@ -5,7 +5,7 @@ import './ChatMessage.css';
 type Props = {
   role: 'user' | 'assistant';
   content: string;
-};
+};  
 
 function ChatMessage({ role, content }: Props) {
   return (

@@ -1,35 +1,86 @@
+body {
+  background: linear-gradient(135deg, #e0e7ff, #f5faff);
+  margin: 0;
+  padding: 0;
+}
+
 .app {
-  max-width: 600px;
-  margin: 2rem auto;
-  font-family: Arial, sans-serif;
+  max-width: 700px;
+  margin: 3rem auto;
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  padding: 2rem;
+  border-radius: 20px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.1);
+  transition: all 0.3s ease;
+}
+
+h1 {
+  text-align: center;
+  margin-bottom: 1.5rem;
+  color: #111;
+  font-size: 1.9rem;
 }
 
 .chat-box {
-  border: 1px solid #ccc;
+  border: none;
+  background: rgba(255, 255, 255, 0.8);
   padding: 1rem;
-  height: 400px;
-  overflow-y: scroll;
-  background: #f9f9f9;
+  height: 420px;
+  overflow-y: auto;
+  border-radius: 12px;
+  box-shadow: inset 0 0 10px rgba(0,0,0,0.05);
 }
 
 .input-area {
   display: flex;
   margin-top: 1rem;
+  gap: 0.5rem;
 }
 
 .input-area input {
   flex: 1;
-  padding: 0.5rem;
+  padding: 0.75rem;
   font-size: 1rem;
+  border-radius: 999px;
+  border: 1px solid #ccc;
+  outline: none;
+  transition: border-color 0.2s;
+}
+
+.input-area input:focus {
+  border-color: #4f46e5;
 }
 
 .input-area button {
-  padding: 0.5rem 1rem;
+  padding: 0.75rem 1.5rem;
   font-size: 1rem;
-  margin-left: 0.5rem;
+  border: none;
+  border-radius: 999px;
+  background-color: #2563eb;
+  color: white;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.input-area button:hover {
+  background-color: #1d4ed8;
 }
 
 .loading {
   font-style: italic;
-  color: gray;
+  color: #666;
+  margin-top: 0.5rem;
+}
+
+.icon {
+  height: 36px;
+  width: 36px;
+  margin-top: -2px;
+  transform: translateY(3px);
+}
+.icon:hover {
+  transform: scale(1.1);
 }
