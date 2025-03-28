@@ -21,8 +21,13 @@ function App() {
     setLoading(true);
 
     try {
-      const response = await axios.post('/api/chat', { message: input });
-      const aiMessage: Message = { role: 'assistant', content: response.data.reply };
+      const userId = "test-user-123"; // Replace this with your actual userId
+      const response = await axios.post(
+        '/api/chat',
+        { message: input, userId },
+        { headers: { 'x-user-id': userId } }
+      );
+      const aiMessage: Message = { role: 'assistant', content: response.data.response };
       setMessages((prev) => [...prev, aiMessage]);
     } catch (err) {
       console.error('Error contacting AI:', err);

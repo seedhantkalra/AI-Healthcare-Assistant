@@ -1,4 +1,5 @@
 import React from 'react';
+import ReactMarkdown from 'react-markdown';
 import './ChatMessage.css';
 
 type Props = {
@@ -9,7 +10,8 @@ type Props = {
 function ChatMessage({ role, content }: Props) {
   return (
     <div className={`chat-message ${role}`}>
-      <strong>{role === 'user' ? 'You' : 'AI'}:</strong> {content}
+      <strong>{role === 'user' ? 'You' : 'AI'}:</strong>
+      <ReactMarkdown>{content}</ReactMarkdown>
     </div>
   );
 }
