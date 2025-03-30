@@ -24,7 +24,6 @@ function App() {
 
   const activeThread = threads.find(t => t.id === activeThreadId);
 
-  // ✅ Ensure one thread exists on load
   useEffect(() => {
     if (threads.length === 0) {
       const newId = uuidv4();
