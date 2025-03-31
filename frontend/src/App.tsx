@@ -59,14 +59,25 @@ function App() {
 
   const startNewChat = () => {
     const newId = uuidv4();
+  
+    // Recalculate titles for existing threads first
+    const renamedThreads = threads.map((thread, index) => ({
+      ...thread,
+      title: `Chat ${index + 1}`,
+    }));
+  
+    // Create the new thread with next number
     const newThread: Thread = {
       id: newId,
-      title: `Chat ${threads.length + 1}`,
+      title: `Chat ${renamedThreads.length + 1}`,
       messages: [],
     };
-    setThreads(prev => [...prev, newThread]);
+  
+    const updated = [...renamedThreads, newThread];
+    setThreads(updated);
     setActiveThreadId(newId);
   };
+  
 
   const switchThread = (id: string) => {
     setActiveThreadId(id);
@@ -74,15 +85,24 @@ function App() {
 
   const deleteThread = (id: string) => {
     setThreads(prev => {
-      const updated = prev.filter(thread => thread.id !== id);
-      if (id === activeThreadId && updated.length > 0) {
-        setActiveThreadId(updated[0].id);
-      } else if (updated.length === 0) {
+      const remaining = prev.filter(thread => thread.id !== id);
+  
+      // Reassign new titles to remaining threads
+      const renamed = remaining.map((thread, index) => ({
+        ...thread,
+        title: `Chat ${index + 1}`,
+      }));
+  
+      if (id === activeThreadId && renamed.length > 0) {
+        setActiveThreadId(renamed[0].id);
+      } else if (renamed.length === 0) {
         setActiveThreadId('');
       }
-      return updated;
+  
+      return renamed;
     });
   };
+  
 
   const sendMessage = async () => {
     if (!input.trim() || loading || !activeThread) return;
@@ -163,12 +183,13 @@ function App() {
         <div className="input-area">
           <input
             type="text"
-            placeholder="Ask a healthcare question..."
+            placeholder={activeThread ? "Ask a healthcare question..." : "Start a new chat to begin"}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
+            disabled={!activeThread}
           />
-          <button onClick={sendMessage} disabled={loading}>
+          <button onClick={sendMessage} disabled={loading || !activeThread}>
             {loading ? '...' : 'Send'}
           </button>
         </div>
