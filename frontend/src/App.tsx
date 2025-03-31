@@ -29,6 +29,7 @@ function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const [nextChatNumber, setNextChatNumber] = useState(2); // Start from 2 after first chat
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const activeThread = threads.find(t => t.id === activeThreadId);
@@ -59,25 +60,15 @@ function App() {
 
   const startNewChat = () => {
     const newId = uuidv4();
-  
-    // Recalculate titles for existing threads first
-    const renamedThreads = threads.map((thread, index) => ({
-      ...thread,
-      title: `Chat ${index + 1}`,
-    }));
-  
-    // Create the new thread with next number
     const newThread: Thread = {
       id: newId,
-      title: `Chat ${renamedThreads.length + 1}`,
+      title: `Chat ${nextChatNumber}`,
       messages: [],
     };
-  
-    const updated = [...renamedThreads, newThread];
-    setThreads(updated);
+    setThreads(prev => [...prev, newThread]);
     setActiveThreadId(newId);
+    setNextChatNumber(prev => prev + 1);
   };
-  
 
   const switchThread = (id: string) => {
     setActiveThreadId(id);
@@ -85,24 +76,13 @@ function App() {
 
   const deleteThread = (id: string) => {
     setThreads(prev => {
-      const remaining = prev.filter(thread => thread.id !== id);
-  
-      // Reassign new titles to remaining threads
-      const renamed = remaining.map((thread, index) => ({
-        ...thread,
-        title: `Chat ${index + 1}`,
-      }));
-  
-      if (id === activeThreadId && renamed.length > 0) {
-        setActiveThreadId(renamed[0].id);
-      } else if (renamed.length === 0) {
-        setActiveThreadId('');
+      const updated = prev.filter(thread => thread.id !== id);
+      if (id === activeThreadId && updated.length > 0) {
+        setActiveThreadId(updated[0].id);
       }
-  
-      return renamed;
+      return updated;
     });
   };
-  
 
   const sendMessage = async () => {
     if (!input.trim() || loading || !activeThread) return;
@@ -164,7 +144,13 @@ function App() {
               <span className="tab-title" onClick={() => switchThread(thread.id)}>
                 {thread.title}
               </span>
-              <button className="close-tab" onClick={() => deleteThread(thread.id)}>×</button>
+              <button
+                className="close-tab"
+                onClick={() => threads.length > 1 && deleteThread(thread.id)}
+                disabled={threads.length === 1}
+              >
+                ×
+              </button>
             </div>
           ))}
           <div className="tab new-chat" onClick={startNewChat}>

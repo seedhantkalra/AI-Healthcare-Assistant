@@ -239,3 +239,7 @@ h1 {
   font-weight: 800;
   text-align: center;
 }
+.close-tab:disabled {
+  color: #ccc;
+  cursor: not-allowed;
+}
