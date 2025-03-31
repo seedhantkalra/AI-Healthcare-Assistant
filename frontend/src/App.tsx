@@ -1,8 +1,17 @@
+// Updated App.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
 import ChatMessage from './ChatMessage';
 import { v4 as uuidv4 } from 'uuid';
+
+// Dummy user info injected from mobile app (replace with real data via props or global state)
+const userProfile = {
+  userId: 'hos-user-001',
+  name: 'Dr. Smith',
+  jobTitle: 'Cardiologist',
+  workplace: 'Credit Valley Hospital'
+};
 
 type Message = {
   role: 'user' | 'assistant';
@@ -34,6 +43,13 @@ function App() {
       };
       setThreads([newThread]);
       setActiveThreadId(newId);
+
+      // Create user profile on mount (once)
+      axios.post('/api/create-user', userProfile).catch(err => {
+        if (err.response?.data?.message !== 'User already exists.') {
+          console.error('User creation failed:', err);
+        }
+      });
     }
   }, []);
 
@@ -82,11 +98,10 @@ function App() {
     setLoading(true);
 
     try {
-      const userId = localStorage.getItem('userId') || '';
       const response = await axios.post(
         '/api/chat',
-        { message: input, userId },
-        { headers: { 'x-user-id': userId } }
+        { message: input, userId: userProfile.userId },
+        { headers: { 'x-user-id': userProfile.userId } }
       );
       const aiMessage: Message = { role: 'assistant', content: response.data.response };
 
