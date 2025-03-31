@@ -144,8 +144,6 @@ router.post("/chat", async (req, res) => {
       req.session.conversationHistory.shift();
     }
 
-    console.log("🔹 Session Short-Term Memory Before Sending:", req.session.conversationHistory);
-
     const userContext = [];
     if (conversation.name && conversation.name !== "ERROR: Unable to decrypt") {
       userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
@@ -159,43 +157,30 @@ router.post("/chat", async (req, res) => {
 
     userContext.push({
       role: "system",
-      content: `You are an AI assistant specializing in healthcare and workplace support. 
-You are NOT a general assistant and should not answer off-topic questions.
+      content: `You are an AI assistant who helps users with healthcare and workplace challenges in a concise, friendly, and personal way.
 
-✅ Your core areas include:
-- Providing physical and mental health tips for workers
-- Helping with stress, posture, fatigue, time management, burnout
-- Workplace accommodations, shift schedules, and health routines
+Your tone should feel warm, encouraging, and professional — like a smart coworker or nurse friend. Refer to the user's name, job title, or workplace when you know it and when it feels natural to do so.
 
-❌ Avoid general topics like math, geography, politics, pop culture.
-If asked, give a brief answer and redirect by saying:
-"I specialize in healthcare and workplace topics. Let me know if you need help in those areas."
+👍 Topics you're best at:
+- Managing stress, fatigue, or burnout
+- Physical and mental health tips for work
+- Posture, pain relief, shift prep
+- Time management and routines
 
-Here are examples of GOOD questions:
-- "How can I manage stress during a busy shift?"
-- "What are good stretches for neck pain?"
-- "How should I prepare for a night shift as a nurse?"
+🤝 When a user asks about something outside these areas (like math, geography, or trivia), do NOT say “I can’t help.” Instead:
+- Give a short, polite answer (if possible)
+- Redirect them with a soft nudge back to your specialties
 
-BAD examples (redirect):
-- "What’s the capital of France?"
-- "Tell me a joke."
-- "How do I invest in crypto?"
-`
+Example:  
+Q: What's the capital of France?  
+A: That's Paris! I usually help with healthcare and work-related topics, but feel free to ask me anything in those areas too 😊`
     });
-
-    const memoryContext = [
-      ...userContext,
-      ...conversation.keyIdeas.slice(-5).map((idea) => ({
-        role: "system",
-        content: `Key insight: ${idea.content}`,
-      })),
-    ];
 
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
         model: "gpt-4o-mini",
-        messages: [...memoryContext, ...req.session.conversationHistory],
+        messages: [...userContext, ...req.session.conversationHistory],
       },
       {
         headers: {
@@ -207,45 +192,54 @@ BAD examples (redirect):
 
     const aiMessageContent = response.data.choices?.[0]?.message?.content;
     if (!aiMessageContent) {
-      console.error("Error: AI did not return a response.");
       return res.status(500).json({ error: "AI did not generate a response." });
     }
 
     const aiMessage = { role: "assistant", content: aiMessageContent };
     req.session.conversationHistory.push(aiMessage);
 
-    console.log( "Updated Session Memory After AI Response:", req.session.conversationHistory);
+    // ✅ NEW: Generate 1 summary for the full conversation
+    const threadText = req.session.conversationHistory.map(m =>
+      `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`
+    ).join('\n');
 
-    const keyTakeaways = await generateKeyTakeaways([
-      { role: "user", content: message },
-      aiMessage,
-    ]);
+    const summaryPrompt = `
+Summarize the key point(s) of this healthcare chat conversation in 1–2 sentences.
+Be professional and make the summary useful for remembering this chat topic later.
 
-    const newIdeas = keyTakeaways.filter(
-      (idea) =>
-        !conversation.keyIdeas.some((existing) => existing.content === idea) &&
-        idea.length > 15 &&
-        !idea.toLowerCase().includes("basic information") &&
-        !idea.toLowerCase().includes("general overview")
+Conversation:
+${threadText}
+`;
+
+    const summaryRes = await axios.post(
+      "https://api.openai.com/v1/chat/completions",
+      {
+        model: "gpt-4o",
+        messages: [{ role: "system", content: summaryPrompt }],
+        max_tokens: 100,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${process.env.OPENAI_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+      }
     );
 
-    if (newIdeas.length > 0) {
-      conversation.keyIdeas.push(
-        ...newIdeas.map((idea) => ({
-          content: idea,
-          timestamp: Date.now(),
-        }))
-      );
+    const summary = summaryRes.data.choices?.[0]?.message?.content?.trim();
+    if (summary) {
+      conversation.keyIdeas.push({
+        content: summary,
+        timestamp: Date.now(),
+      });
     }
 
     conversation.lastUpdated = new Date();
     await conversation.save();
 
-    console.log("🔹 Updated Long-Term Memory After AI Response:", conversation.keyIdeas);
-
-    res.json({ response: aiMessage.content });
+    res.json({ response: aiMessageContent });
   } catch (error) {
-    console.error("Error communicating with OpenAI:", error.response?.data || error.message);
+    console.error("Error during AI chat:", error);
     res.status(500).json({ error: "Failed to get response from AI" });
   }
 });
