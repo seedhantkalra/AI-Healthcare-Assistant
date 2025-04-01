@@ -1,4 +1,3 @@
-// Updated App.tsx
 import React, { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import './App.css';
@@ -28,30 +27,59 @@ function App() {
   const [activeThreadId, setActiveThreadId] = useState<string>('');
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [nextChatNumber, setNextChatNumber] = useState(2); // Start from 2 after first chat
+  const [nextChatNumber, setNextChatNumber] = useState(2);
   const bottomRef = useRef<HTMLDivElement | null>(null);
 
   const activeThread = threads.find(t => t.id === activeThreadId);
 
+  // ✅ Load saved threads OR start with Chat 1 if empty
   useEffect(() => {
-    if (threads.length === 0) {
-      const newId = uuidv4();
-      const newThread: Thread = {
-        id: newId,
-        title: 'Chat 1',
-        messages: [],
-      };
-      setThreads([newThread]);
-      setActiveThreadId(newId);
+    const savedThreads = localStorage.getItem('threads');
+    const savedNextChatNumber = localStorage.getItem('nextChatNumber');
 
-    
-      axios.post('/api/create-user', userProfile).catch(err => {
-        if (err.response?.data?.message !== 'User already exists.') {
-          console.error('User creation failed:', err);
-        }
-      });
+    if (savedThreads) {
+      const parsedThreads = JSON.parse(savedThreads);
+      if (parsedThreads.length > 0) {
+        setThreads(parsedThreads);
+        setActiveThreadId(parsedThreads[0].id);
+      } else {
+        createFirstChat();
+      }
+    } else {
+      createFirstChat();
     }
+
+    if (savedNextChatNumber) {
+      setNextChatNumber(Number(savedNextChatNumber));
+    } else {
+      setNextChatNumber(2);
+    }
+
+    // Create user profile once
+    axios.post('/api/create-user', userProfile).catch(err => {
+      if (err.response?.data?.message !== 'User already exists.') {
+        console.error('User creation failed:', err);
+      }
+    });
   }, []);
+
+  const createFirstChat = () => {
+    const id = uuidv4();
+    const firstThread: Thread = {
+      id,
+      title: 'Chat 1',
+      messages: [],
+    };
+    setThreads([firstThread]);
+    setActiveThreadId(id);
+    setNextChatNumber(2);
+  };
+
+  // ✅ Save threads and counter
+  useEffect(() => {
+    localStorage.setItem('threads', JSON.stringify(threads));
+    localStorage.setItem('nextChatNumber', String(nextChatNumber));
+  }, [threads, nextChatNumber]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -74,6 +102,7 @@ function App() {
   };
 
   const deleteThread = (id: string) => {
+    if (threads.length === 1) return;
     setThreads(prev => {
       const updated = prev.filter(thread => thread.id !== id);
       if (id === activeThreadId && updated.length > 0) {
