@@ -44,7 +44,7 @@ function App() {
       setThreads([newThread]);
       setActiveThreadId(newId);
 
-      // Create user profile on mount (once)
+    
       axios.post('/api/create-user', userProfile).catch(err => {
         if (err.response?.data?.message !== 'User already exists.') {
           console.error('User creation failed:', err);
