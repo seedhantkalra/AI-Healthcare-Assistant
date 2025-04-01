@@ -5,7 +5,6 @@ import './App.css';
 import ChatMessage from './ChatMessage';
 import { v4 as uuidv4 } from 'uuid';
 
-// Dummy user info injected from mobile app (replace with real data via props or global state)
 const userProfile = {
   userId: 'hos-user-001',
   name: 'Dr. Smith',
