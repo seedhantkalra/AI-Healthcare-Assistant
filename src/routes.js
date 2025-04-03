@@ -2,7 +2,7 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 import Conversation from "../models/Conversation.js";
-import { verifyToken } from "./utils/auth.js";
+import { verifyToken } from "../utils/auth.js";
 import { encrypt } from "./config.js"; 
 
 dotenv.config();

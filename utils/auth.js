@@ -1,25 +1,10 @@
-const jwt = require('jsonwebtoken');
-const jwksClient = require('jwks-rsa');
+// utils/auth.js (ES Module version for local testing)
 
-const REGION = 'your-region'; // e.g. us-east-1
-const USER_POOL_ID = 'your-user-pool-id'; // e.g. us-east-1_ABC123XYZ
+import jwt from 'jsonwebtoken';
 
-const client = jwksClient({
-  jwksUri: `https://cognito-idp.${REGION}.amazonaws.com/${USER_POOL_ID}/.well-known/jwks.json`,
-});
+const SECRET = 'my-test-secret'; // must match generateToken.js
 
-const getKey = (header, callback) => {
-  client.getSigningKey(header.kid, (err, key) => {
-    if (err) {
-      callback(err);
-    } else {
-      const signingKey = key.getPublicKey();
-      callback(null, signingKey);
-    }
-  });
-};
-
-const verifyToken = (req) => {
+export const verifyToken = (req) => {
   return new Promise((resolve, reject) => {
     const authHeader = req.headers.authorization;
 
@@ -29,19 +14,17 @@ const verifyToken = (req) => {
 
     const token = authHeader.split(' ')[1];
 
-    jwt.verify(token, getKey, {}, (err, decoded) => {
+    jwt.verify(token, SECRET, (err, decoded) => {
       if (err || !decoded) {
-        return reject(new Error('Invalid token.'));
+        return reject(new Error('Invalid token'));
       }
 
       resolve({
-        userId: decoded.sub,
+        userId: decoded.userId,
         name: decoded.name || '',
-        jobTitle: decoded['custom:jobTitle'] || '',
-        workplace: decoded['custom:workplace'] || '',
+        jobTitle: decoded.jobTitle || '',
+        workplace: decoded.workplace || '',
       });
     });
   });
 };
-
-module.exports = { verifyToken };
