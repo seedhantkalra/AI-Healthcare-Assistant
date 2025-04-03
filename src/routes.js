@@ -2,79 +2,11 @@ import express from "express";
 import axios from "axios";
 import dotenv from "dotenv";
 import Conversation from "../models/Conversation.js";
-import bcrypt from "bcrypt";
-import User from "../models/User.js";
+import { verifyToken } from "./utils/auth.js";
+import { encrypt } from "./config.js"; 
 
 dotenv.config();
 export const router = express.Router();
-
-// ✅ AUTH: Register user
-router.post("/register", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    const user = await User.create({ email, passwordHash });
-    req.session.userId = user._id;
-
-    res.json({ message: "✅ Registered & logged in", userId: user._id });
-  } catch (err) {
-    console.error("❌ Registration Error:", err);
-    res.status(500).json({ error: "Registration failed." });
-  }
-});
-
-// ✅ AUTH: Login user
-router.post("/login", async (req, res) => {
-  try {
-    const { email, password } = req.body;
-    const user = await User.findOne({ email });
-    if (!user || !(await user.validatePassword(password))) {
-      return res.status(401).json({ error: "Invalid credentials" });
-    }
-
-    req.session.userId = user._id;
-    res.json({ message: "✅ Logged in", userId: user._id });
-  } catch (err) {
-    console.error("❌ Login Error:", err);
-    res.status(500).json({ error: "Login failed." });
-  }
-});
-
-// ✅ AUTH: Logout user
-router.get("/logout", (req, res) => {
-  req.session.destroy();
-  res.json({ message: "✅ Logged out" });
-});
-
-// ✅ PROFILE: Update user info (name, jobTitle, workplace)
-router.put("/update-profile", async (req, res) => {
-  try {
-    const { userId, name, jobTitle, workplace } = req.body;
-    const requestorId = req.headers["x-user-id"];
-
-    if (!userId || requestorId !== userId) {
-      return res.status(403).json({ error: "Unauthorized access." });
-    }
-
-    const conversation = await Conversation.findOne({ userId });
-    if (!conversation) {
-      return res.status(404).json({ error: "User profile not found." });
-    }
-
-    if (name) conversation.name = name;
-    if (jobTitle) conversation.jobTitle = jobTitle;
-    if (workplace) conversation.workplace = workplace;
-    conversation.lastUpdated = new Date();
-
-    await conversation.save();
-
-    res.json({ message: "✅ Profile updated", profile: conversation });
-  } catch (err) {
-    console.error("❌ Profile Update Error:", err);
-    res.status(500).json({ error: "Failed to update profile." });
-  }
-});
 
 async function generateKeyTakeaways(conversationHistory) {
   try {
@@ -86,7 +18,7 @@ async function generateKeyTakeaways(conversationHistory) {
           {
             role: "system",
             content:
-              "Summarize the key **context** of this conversation in 2-3 concise points. Do NOT include general knowledge the AI already knows. Only keep **unique, discussion-specific insights**. Prioritize the main **topic and user-specific details**.",
+              "Summarize the key **context** of this conversation in 2-3 concise points. Do NOT include general knowledge the AI already knows. Only keep **unique, discussion-specific insights**.",
           },
           ...conversationHistory,
         ],
@@ -111,30 +43,42 @@ async function generateKeyTakeaways(conversationHistory) {
   }
 }
 
-router.get("/chat", (req, res) => {
-  res.json({ message: "This is the AI chat endpoint. Send a POST request with a message." });
+// ✅ Create user using Cognito token
+router.post("/create-user", async (req, res) => {
+  try {
+    const { userId, name, jobTitle, workplace } = await verifyToken(req);
+
+    const exists = await Conversation.findOne({ userId });
+    if (exists) return res.json({ message: "User already exists." });
+
+    const conversation = await Conversation.create({
+      userId,
+      name: encrypt(name),
+      jobTitle: encrypt(jobTitle),
+      workplace: encrypt(workplace),
+      keyIdeas: [],
+      lastUpdated: new Date(),
+    });
+
+    res.json({ message: "✅ User created!", conversation });
+  } catch (error) {
+    console.error("❌ User creation failed:", error.message);
+    res.status(401).json({ error: error.message });
+  }
 });
 
+// ✅ Chat using token identity only
 router.post("/chat", async (req, res) => {
   try {
-    const { userId, message } = req.body;
-    const requestorId = req.headers["x-user-id"];
+    const { message } = req.body;
+    if (!message) return res.status(400).json({ error: "Message is required." });
 
-    if (!userId || !message) {
-      return res.status(400).json({ error: "User ID and message are required." });
-    }
-
-    if (requestorId !== userId) {
-      return res.status(403).json({
-        error: "Unauthorized access. You cannot view another user's data.",
-      });
-    }
+    const { userId, name, jobTitle, workplace } = await verifyToken(req);
 
     const conversation = await Conversation.findOne({ userId });
-    if (!conversation) {
-      return res.status(404).json({ error: "No conversation found for this user." });
-    }
+    if (!conversation) return res.status(404).json({ error: "No conversation found." });
 
+    // Setup session chat history
     if (!req.session.conversationHistory) {
       req.session.conversationHistory = [];
     }
@@ -144,20 +88,14 @@ router.post("/chat", async (req, res) => {
       req.session.conversationHistory.shift();
     }
 
-    const userContext = [];
-    if (conversation.name && conversation.name !== "ERROR: Unable to decrypt") {
-      userContext.push({ role: "system", content: `The user's name is ${conversation.name}.` });
-    }
-    if (conversation.jobTitle) {
-      userContext.push({ role: "system", content: `The user's job title is ${conversation.jobTitle}.` });
-    }
-    if (conversation.workplace) {
-      userContext.push({ role: "system", content: `The user works at ${conversation.workplace}.` });
-    }
-
-    userContext.push({
-      role: "system",
-      content: `You are an AI assistant who helps users with healthcare and workplace challenges in a concise, friendly, and personal way.
+    // Prepare prompt context
+    const userContext = [
+      { role: "system", content: `The user's name is ${name}.` },
+      { role: "system", content: `The user's job title is ${jobTitle}.` },
+      { role: "system", content: `The user works at ${workplace}.` },
+      {
+        role: "system",
+        content: `You are an AI assistant who helps users with healthcare and workplace challenges in a concise, friendly, and personal way.
 
 Your tone should feel warm, encouraging, and professional — like a smart coworker or nurse friend. Refer to the user's name, job title, or workplace when you know it and when it feels natural to do so.
 
@@ -173,9 +111,11 @@ Your tone should feel warm, encouraging, and professional — like a smart cowor
 
 Example:  
 Q: What's the capital of France?  
-A: That's Paris! I usually help with healthcare and work-related topics, but feel free to ask me anything in those areas too 😊`
-    });
+A: That's Paris! I usually help with healthcare and work-related topics, but feel free to ask me anything in those areas too 😊`,
+      },
+    ];
 
+    // Get AI response
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -192,24 +132,18 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
 
     const aiMessageContent = response.data.choices?.[0]?.message?.content;
     if (!aiMessageContent) {
-      return res.status(500).json({ error: "AI did not generate a response." });
+      return res.status(500).json({ error: "AI did not respond." });
     }
 
     const aiMessage = { role: "assistant", content: aiMessageContent };
     req.session.conversationHistory.push(aiMessage);
 
-    // ✅ NEW: Generate 1 summary for the full conversation
+    // 🔍 Generate & store summary
     const threadText = req.session.conversationHistory.map(m =>
       `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`
     ).join('\n');
 
-    const summaryPrompt = `
-Summarize the key point(s) of this healthcare chat conversation in 1–2 sentences.
-Be professional and make the summary useful for remembering this chat topic later.
-
-Conversation:
-${threadText}
-`;
+    const summaryPrompt = `Summarize the key point(s) of this healthcare chat in 1–2 sentences for future memory recall:\n${threadText}`;
 
     const summaryRes = await axios.post(
       "https://api.openai.com/v1/chat/completions",
@@ -239,34 +173,8 @@ ${threadText}
 
     res.json({ response: aiMessageContent });
   } catch (error) {
-    console.error("Error during AI chat:", error);
-    res.status(500).json({ error: "Failed to get response from AI" });
-  }
-});
-
-// ✅ NEW: Create test user via API
-router.post("/create-user", async (req, res) => {
-  try {
-    const { userId, name, jobTitle, workplace } = req.body;
-
-    if (!userId) {
-      return res.status(400).json({ error: "userId is required." });
-    }
-
-    const exists = await Conversation.findOne({ userId });
-    if (exists) return res.json({ message: "User already exists." });
-
-    const conversation = await Conversation.create({
-      userId,
-      name,
-      jobTitle,
-      workplace,
-    });
-
-    res.json({ message: "User created!", conversation });
-  } catch (error) {
-    console.error("Failed to create user:", error);
-    res.status(500).json({ error: "Failed to create user" });
+    console.error("❌ Chat Error:", error.message);
+    res.status(401).json({ error: error.message });
   }
 });
 
