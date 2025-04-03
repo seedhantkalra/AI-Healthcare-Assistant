@@ -1,4 +1,4 @@
-const jwt = require('jsonwebtoken');
+import jwt from 'jsonwebtoken';
 
 const payload = {
   userId: 'demo-user-001',
@@ -7,9 +7,10 @@ const payload = {
   workplace: 'Sunnybrook Health Centre',
 };
 
-const secret = 'my-test-secret'; // same secret used in auth.js
+const secret = 'my-test-secret'; // Must match your backend's auth.js
 
 const token = jwt.sign(payload, secret, { expiresIn: '1h' });
 
 console.log('\n✅ Here is your test token:\n');
 console.log(token);
+
