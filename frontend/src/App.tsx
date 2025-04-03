@@ -75,7 +75,7 @@ function App() {
     setNextChatNumber(2);
   };
 
-  // ✅ Save threads and counter
+  // Save threads and counter
   useEffect(() => {
     localStorage.setItem('threads', JSON.stringify(threads));
     localStorage.setItem('nextChatNumber', String(nextChatNumber));
