@@ -13,7 +13,6 @@ export const openaiApiKey = process.env.OPENAI_API_KEY;
 export const mongoUri = process.env.MONGO_URI;
 export const encryptionSecret = process.env.ENCRYPTION_SECRET;
 
-// ✅ Encrypt function (AES-256)
 export const encrypt = (text) => {
   const cipher = crypto.createCipheriv(
     'aes-256-cbc',
