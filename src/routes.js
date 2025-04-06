@@ -38,7 +38,7 @@ async function generateKeyTakeaways(conversationHistory) {
 
     return [...new Set(keyTakeaways)];
   } catch (error) {
-    console.error("❌ Error generating key takeaways:", error.response?.data || error.message);
+    console.error("Error generating key takeaways:", error.response?.data || error.message);
     return [];
   }
 }
