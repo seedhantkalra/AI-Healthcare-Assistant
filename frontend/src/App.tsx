@@ -34,45 +34,48 @@ function App() {
     if (!input.trim() || loading || !activeThread) return;
 
     const userMessage: Message = { role: 'user', content: input };
-    const updatedThreads = threads.map((t) =>
-      t.id === activeThreadId
-        ? { ...t, messages: [...t.messages, userMessage] }
-        : t
-    );
-    setThreads(updatedThreads);
-    setInput('');
     setLoading(true);
+    setInput('');
 
     try {
       const response = await axios.post(
-        '/api/chat',
+        "http://localhost:5000/api/chat",
         { message: input },
         {
           headers: {
             Authorization:
-              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0MzcxMzk1NiwiZXhwIjoxNzQzNzE3NTU2fQ.B-grEfW9q26YO0sWJ_9bw91W-coUuUQAnumaPlTA074',
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0NDA1NDE3MCwiZXhwIjoxNzQ0MDU3NzcwfQ.uzCZUiQK5aKNrJey3QmKYCnyUJ_2ftuKYHOWkYfyG7w',
             'Content-Type': 'application/json',
           },
         }
       );
 
-      const aiMessage: Message = { role: 'assistant', content: response.data.response };
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: response.data.response || 'No response.',
+      };
 
-      const newThreads = threads.map((t) =>
-        t.id === activeThreadId
-          ? { ...t, messages: [...t.messages, aiMessage] }
-          : t
+      setThreads((prevThreads) =>
+        prevThreads.map((t) =>
+          t.id === activeThreadId
+            ? {
+                ...t,
+                messages: [...t.messages, userMessage, aiMessage],
+              }
+            : t
+        )
       );
-      setThreads(newThreads);
-    } catch (err) {
-      console.error('Error sending message:', err);
+    } catch (error) {
+      console.error('Error sending message:', error);
     } finally {
       setLoading(false);
     }
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') sendMessage();
+    if (e.key === 'Enter' && !loading) {
+      sendMessage();
+    }
   };
 
   const startNewChat = () => {
@@ -134,9 +137,10 @@ function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Type your message..."
+            disabled={loading}
           />
-          <button onClick={sendMessage} disabled={loading}>
-            Send
+          <button onClick={sendMessage} disabled={loading || !input.trim()}>
+            {loading ? '...' : 'Send'}
           </button>
         </div>
       </div>
