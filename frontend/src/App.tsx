@@ -44,7 +44,7 @@ function App() {
         {
           headers: {
             Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0NDA1NDE3MCwiZXhwIjoxNzQ0MDU3NzcwfQ.uzCZUiQK5aKNrJey3QmKYCnyUJ_2ftuKYHOWkYfyG7w',
+            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0NDA2MDExMiwiZXhwIjoxNzQ0MDYzNzEyfQ.OJP5eEVCELV_PdrxfHs3UcXvYTCrwC3qDPR7wRSPAZM',
             'Content-Type': 'application/json',
           },
         }

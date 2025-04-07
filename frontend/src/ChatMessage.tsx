@@ -1,17 +1,24 @@
-import React from 'react';
-import './ChatMessage.css';
+import React from "react";
+import "./ChatMessage.css";
 
-type Props = {
-  role: 'user' | 'assistant';
+interface Message {
+  role: "user" | "assistant";
   content: string;
-};
+}
 
-function ChatMessage({ role, content }: Props) {
-  const isUser = role === 'user';
+interface Props {
+  message: Message;
+}
+
+function ChatMessage({ message }: Props) {
+  const isUser = message.role === "user";
 
   return (
-    <div className={`chat-message ${role}`}>
-      <span className="label"><strong>{isUser ? 'You' : 'AI'}:</strong></span> {content}
+    <div className="chat-message-wrapper">
+      <div className={`chat-message ${message.role}`}>
+        <div className="sender-label">{isUser ? "You:" : "AI:"}</div>
+        {message.content}
+      </div>
     </div>
   );
 }
