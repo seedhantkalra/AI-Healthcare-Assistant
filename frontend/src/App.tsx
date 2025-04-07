@@ -34,17 +34,24 @@ function App() {
     if (!input.trim() || loading || !activeThread) return;
 
     const userMessage: Message = { role: 'user', content: input };
-    setLoading(true);
+    const updatedThreads = threads.map((t) =>
+      t.id === activeThreadId
+        ? { ...t, messages: [...t.messages, userMessage] }
+        : t
+    );
+
+    setThreads(updatedThreads);
     setInput('');
+    setLoading(true);
 
     try {
       const response = await axios.post(
-        "http://localhost:5000/api/chat",
-        { message: input },
+        '/api/chat',
+        { message: userMessage.content },
         {
           headers: {
             Authorization:
-            'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0NDA2MDExMiwiZXhwIjoxNzQ0MDYzNzEyfQ.OJP5eEVCELV_PdrxfHs3UcXvYTCrwC3qDPR7wRSPAZM',
+              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0NDA2MDExMiwiZXhwIjoxNzQ0MDYzNzEyfQ.OJP5eEVCELV_PdrxfHs3UcXvYTCrwC3qDPR7wRSPAZM',
             'Content-Type': 'application/json',
           },
         }
@@ -60,7 +67,7 @@ function App() {
           t.id === activeThreadId
             ? {
                 ...t,
-                messages: [...t.messages, userMessage, aiMessage],
+                messages: [...t.messages, aiMessage],
               }
             : t
         )
@@ -129,6 +136,12 @@ function App() {
           {activeThread?.messages.map((msg, idx) => (
             <ChatMessage key={idx} message={msg} />
           ))}
+          {loading && (
+            <ChatMessage
+              key="typing-indicator"
+              message={{ role: 'assistant', content: '...' }}
+            />
+          )}
           <div ref={messagesEndRef} />
         </div>
         <div className="input-area">
@@ -137,7 +150,6 @@ function App() {
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyPress}
             placeholder="Type your message..."
-            disabled={loading}
           />
           <button onClick={sendMessage} disabled={loading || !input.trim()}>
             {loading ? '...' : 'Send'}
