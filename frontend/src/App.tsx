@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 import ChatMessage from './ChatMessage';
@@ -18,17 +18,26 @@ function App() {
   const [activeThreadId, setActiveThreadId] = useState(1);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const activeThread = threads.find(thread => thread.id === activeThreadId);
+  const activeThread = threads.find((t) => t.id === activeThreadId);
+
+  const scrollToBottom = () => {
+    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+  };
+
+  useEffect(() => {
+    scrollToBottom();
+  }, [activeThread?.messages]);
 
   const sendMessage = async () => {
     if (!input.trim() || loading || !activeThread) return;
 
     const userMessage: Message = { role: 'user', content: input };
-    const updatedThreads = threads.map(thread =>
-      thread.id === activeThreadId
-        ? { ...thread, messages: [...thread.messages, userMessage] }
-        : thread
+    const updatedThreads = threads.map((t) =>
+      t.id === activeThreadId
+        ? { ...t, messages: [...t.messages, userMessage] }
+        : t
     );
     setThreads(updatedThreads);
     setInput('');
@@ -47,20 +56,16 @@ function App() {
         }
       );
 
-      const aiMessage: Message = {
-        role: 'assistant',
-        content: response.data.response,
-      };
+      const aiMessage: Message = { role: 'assistant', content: response.data.response };
 
-      setThreads(prev =>
-        prev.map(thread =>
-          thread.id === activeThreadId
-            ? { ...thread, messages: [...thread.messages, aiMessage] }
-            : thread
-        )
+      const newThreads = threads.map((t) =>
+        t.id === activeThreadId
+          ? { ...t, messages: [...t.messages, aiMessage] }
+          : t
       );
+      setThreads(newThreads);
     } catch (err) {
-      console.error('Error contacting AI:', err);
+      console.error('Error sending message:', err);
     } finally {
       setLoading(false);
     }
@@ -71,18 +76,17 @@ function App() {
   };
 
   const startNewChat = () => {
-    const newId = threads.length > 0 ? Math.max(...threads.map(t => t.id)) + 1 : 1;
-    const newThread: Thread = { id: newId, messages: [] };
-    setThreads([...threads, newThread]);
+    const newId = threads.length > 0 ? Math.max(...threads.map((t) => t.id)) + 1 : 1;
+    setThreads([...threads, { id: newId, messages: [] }]);
     setActiveThreadId(newId);
   };
 
   const closeChat = (id: number) => {
-    if (threads.length === 1) return; // Prevent deleting last chat
-    const updatedThreads = threads.filter(thread => thread.id !== id);
-    setThreads(updatedThreads);
-    if (activeThreadId === id && updatedThreads.length > 0) {
-      setActiveThreadId(updatedThreads[0].id);
+    if (threads.length === 1) return;
+    const updated = threads.filter((t) => t.id !== id);
+    setThreads(updated);
+    if (activeThreadId === id && updated.length > 0) {
+      setActiveThreadId(updated[0].id);
     }
   };
 
@@ -93,20 +97,18 @@ function App() {
         <button className="new-chat-btn" onClick={startNewChat}>
           + New Chat
         </button>
-        {threads.map(thread => (
+        {threads.map((t) => (
           <div
-            key={thread.id}
-            className={`chat-tab ${thread.id === activeThreadId ? 'active' : ''}`}
-            onClick={() => setActiveThreadId(thread.id)}
+            key={t.id}
+            className={`chat-tab ${t.id === activeThreadId ? 'active' : ''}`}
+            onClick={() => setActiveThreadId(t.id)}
           >
-            Chat {thread.id}
+            Chat {t.id}
             {threads.length > 1 && (
-              <button className="close-btn" onClick={e => {
+              <button className="close-btn" onClick={(e) => {
                 e.stopPropagation();
-                closeChat(thread.id);
-              }}>
-                ×
-              </button>
+                closeChat(t.id);
+              }}>×</button>
             )}
           </div>
         ))}
@@ -114,15 +116,16 @@ function App() {
 
       <div className="chat-area">
         <div className="messages">
-          {activeThread?.messages.map((msg, index) => (
-            <ChatMessage key={index} message={msg} />
+          {activeThread?.messages.map((msg, idx) => (
+            <ChatMessage key={idx} message={msg} />
           ))}
+          <div ref={messagesEndRef} />
         </div>
         <div className="input-area">
           <input
             value={input}
-            onChange={e => setInput(e.target.value)}
-            onKeyPress={handleKeyPress}
+            onChange={(e) => setInput(e.target.value)}
+            onKeyDown={handleKeyPress}
             placeholder="Type your message..."
           />
           <button onClick={sendMessage} disabled={loading}>
