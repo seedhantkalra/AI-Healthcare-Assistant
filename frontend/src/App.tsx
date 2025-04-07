@@ -92,26 +92,33 @@ function App() {
 
   return (
     <div className="app">
-      <div className="sidebar">
+      <div className="chat-header">
         <h2 className="header">AI Healthcare Assistant</h2>
         <button className="new-chat-btn" onClick={startNewChat}>
           + New Chat
         </button>
-        {threads.map((t) => (
-          <div
-            key={t.id}
-            className={`chat-tab ${t.id === activeThreadId ? 'active' : ''}`}
-            onClick={() => setActiveThreadId(t.id)}
-          >
-            Chat {t.id}
-            {threads.length > 1 && (
-              <button className="close-btn" onClick={(e) => {
-                e.stopPropagation();
-                closeChat(t.id);
-              }}>×</button>
-            )}
-          </div>
-        ))}
+        <div className="tabs">
+          {threads.map((t) => (
+            <div
+              key={t.id}
+              className={`chat-tab ${t.id === activeThreadId ? 'active' : ''}`}
+              onClick={() => setActiveThreadId(t.id)}
+            >
+              Chat {t.id}
+              {threads.length > 1 && (
+                <button
+                  className="close-btn"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    closeChat(t.id);
+                  }}
+                >
+                  ×
+                </button>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
 
       <div className="chat-area">

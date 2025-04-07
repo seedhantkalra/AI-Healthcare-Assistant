@@ -178,13 +178,14 @@ h1 {
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  padding: 0.5rem 1rem;
+  padding: 0.5rem;
   border: 1px solid #cbd5e1;
   border-radius: 8px;
   background-color: #f8fafc;
   white-space: nowrap;
   transition: all 0.2s ease;
   font-weight: 500;
+  flex-wrap: wrap;
 }
 
 .tab-title {
@@ -243,4 +244,40 @@ h1 {
 .close-tab:disabled {
   color: #ccc;
   cursor: not-allowed;
+}
+
+.tabs {
+  display: flex;
+  flex-direction: row;         /* ensures horizontal layout */
+  flex-wrap: wrap;
+  justify-content: flex-start;
+  gap: 0.5rem;
+  margin: 1rem 0;
+  padding: 0.5rem;
+  overflow-x: auto;
+}
+
+.chat-tab {
+  background-color: #fff;
+  border: 1px solid #ccc;
+  padding: 0.4rem 0.8rem;
+  border-radius: 5px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  color: black;
+  white-space: nowrap;
+}
+
+.chat-tab.active {
+  background-color: #dbeafe;
+  font-weight: bold;
+}
+
+.close-btn {
+  margin-left: 0.5rem;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: red;
 }
