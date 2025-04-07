@@ -1,15 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import axios from 'axios';
 import './App.css';
 import ChatMessage from './ChatMessage';
-import { v4 as uuidv4 } from 'uuid';
-
-const userProfile = {
-  userId: 'hos-user-001',
-  name: 'Dr. Smith',
-  jobTitle: 'Cardiologist',
-  workplace: 'Credit Valley Hospital'
-};
 
 type Message = {
   role: 'user' | 'assistant';
@@ -17,100 +9,17 @@ type Message = {
 };
 
 type Thread = {
-  id: string;
-  title: string;
+  id: number;
   messages: Message[];
 };
 
 function App() {
-  const [threads, setThreads] = useState<Thread[]>([]);
-  const [activeThreadId, setActiveThreadId] = useState<string>('');
+  const [threads, setThreads] = useState<Thread[]>([{ id: 1, messages: [] }]);
+  const [activeThreadId, setActiveThreadId] = useState(1);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(false);
-  const [nextChatNumber, setNextChatNumber] = useState(2);
-  const bottomRef = useRef<HTMLDivElement | null>(null);
 
-  const activeThread = threads.find(t => t.id === activeThreadId);
-
-  // ✅ Load saved threads OR start with Chat 1 if empty
-  useEffect(() => {
-    const savedThreads = localStorage.getItem('threads');
-    const savedNextChatNumber = localStorage.getItem('nextChatNumber');
-
-    if (savedThreads) {
-      const parsedThreads = JSON.parse(savedThreads);
-      if (parsedThreads.length > 0) {
-        setThreads(parsedThreads);
-        setActiveThreadId(parsedThreads[0].id);
-      } else {
-        createFirstChat();
-      }
-    } else {
-      createFirstChat();
-    }
-
-    if (savedNextChatNumber) {
-      setNextChatNumber(Number(savedNextChatNumber));
-    } else {
-      setNextChatNumber(2);
-    }
-
-    // Create user profile once
-    axios.post('/api/create-user', userProfile).catch(err => {
-      if (err.response?.data?.message !== 'User already exists.') {
-        console.error('User creation failed:', err);
-      }
-    });
-  }, []);
-
-  const createFirstChat = () => {
-    const id = uuidv4();
-    const firstThread: Thread = {
-      id,
-      title: 'Chat 1',
-      messages: [],
-    };
-    setThreads([firstThread]);
-    setActiveThreadId(id);
-    setNextChatNumber(2);
-  };
-
-  // Save threads and counter
-  useEffect(() => {
-    localStorage.setItem('threads', JSON.stringify(threads));
-    localStorage.setItem('nextChatNumber', String(nextChatNumber));
-  }, [threads, nextChatNumber]);
-
-  useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [activeThread?.messages]);
-
-  const startNewChat = () => {
-    const newId = uuidv4();
-    const newThread: Thread = {
-      id: newId,
-      title: `Chat ${nextChatNumber}`,
-      messages: [],
-    };
-    setThreads(prev => [...prev, newThread]);
-    setActiveThreadId(newId);
-    setNextChatNumber(prev => prev + 1);
-  };
-
-  const switchThread = (id: string) => {
-    setActiveThreadId(id);
-  };
-
-  const deleteThread = (id: string) => {
-    if (threads.length === 1) return;
-    setThreads(prev => {
-      const updated = prev.filter(thread => thread.id !== id);
-      if (id === activeThreadId && updated.length > 0) {
-        setActiveThreadId(updated[0].id);
-      }
-      return updated;
-    });
-  };
+  const activeThread = threads.find(thread => thread.id === activeThreadId);
 
   const sendMessage = async () => {
     if (!input.trim() || loading || !activeThread) return;
@@ -128,10 +37,20 @@ function App() {
     try {
       const response = await axios.post(
         '/api/chat',
-        { message: input, userId: userProfile.userId },
-        { headers: { 'x-user-id': userProfile.userId } }
+        { message: input },
+        {
+          headers: {
+            Authorization:
+              'Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOiJkZW1vLXVzZXItMDAxIiwibmFtZSI6IkRyLiBFbWlseSIsImpvYlRpdGxlIjoiU3VyZ2VvbiIsIndvcmtwbGFjZSI6IlN1bm55YnJvb2sgSGVhbHRoIENlbnRyZSIsImlhdCI6MTc0MzcxMzk1NiwiZXhwIjoxNzQzNzE3NTU2fQ.B-grEfW9q26YO0sWJ_9bw91W-coUuUQAnumaPlTA074',
+            'Content-Type': 'application/json',
+          },
+        }
       );
-      const aiMessage: Message = { role: 'assistant', content: response.data.response };
+
+      const aiMessage: Message = {
+        role: 'assistant',
+        content: response.data.response,
+      };
 
       setThreads(prev =>
         prev.map(thread =>
@@ -148,63 +67,66 @@ function App() {
   };
 
   const handleKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter' && !loading) {
-      sendMessage();
+    if (e.key === 'Enter') sendMessage();
+  };
+
+  const startNewChat = () => {
+    const newId = threads.length > 0 ? Math.max(...threads.map(t => t.id)) + 1 : 1;
+    const newThread: Thread = { id: newId, messages: [] };
+    setThreads([...threads, newThread]);
+    setActiveThreadId(newId);
+  };
+
+  const closeChat = (id: number) => {
+    if (threads.length === 1) return; // Prevent deleting last chat
+    const updatedThreads = threads.filter(thread => thread.id !== id);
+    setThreads(updatedThreads);
+    if (activeThreadId === id && updatedThreads.length > 0) {
+      setActiveThreadId(updatedThreads[0].id);
     }
   };
 
   return (
-    <div className="chat-wrapper">
-      <div className="app-container">
-        <div className="top-bar">
-          <h1 className="header">
-            <img src="/icon-stethoscope.svg" alt="icon" className="icon" />
-            AI Healthcare Assistant
-          </h1>
-        </div>
-
-        <div className="tab-bar">
-          {threads.map(thread => (
-            <div
-              key={thread.id}
-              className={`tab ${thread.id === activeThreadId ? 'active' : ''}`}
-            >
-              <span className="tab-title" onClick={() => switchThread(thread.id)}>
-                {thread.title}
-              </span>
-              <button
-                className="close-tab"
-                onClick={() => threads.length > 1 && deleteThread(thread.id)}
-                disabled={threads.length === 1}
-              >
+    <div className="app">
+      <div className="sidebar">
+        <h2 className="header">AI Healthcare Assistant</h2>
+        <button className="new-chat-btn" onClick={startNewChat}>
+          + New Chat
+        </button>
+        {threads.map(thread => (
+          <div
+            key={thread.id}
+            className={`chat-tab ${thread.id === activeThreadId ? 'active' : ''}`}
+            onClick={() => setActiveThreadId(thread.id)}
+          >
+            Chat {thread.id}
+            {threads.length > 1 && (
+              <button className="close-btn" onClick={e => {
+                e.stopPropagation();
+                closeChat(thread.id);
+              }}>
                 ×
               </button>
-            </div>
-          ))}
-          <div className="tab new-chat" onClick={startNewChat}>
-            + New Chat
+            )}
           </div>
-        </div>
+        ))}
+      </div>
 
-        <div className="chat-box">
-          {activeThread?.messages.map((msg, idx) => (
-            <ChatMessage key={idx} role={msg.role} content={msg.content} />
+      <div className="chat-area">
+        <div className="messages">
+          {activeThread?.messages.map((msg, index) => (
+            <ChatMessage key={index} message={msg} />
           ))}
-          {loading && <div className="loading">AI is typing...</div>}
-          <div ref={bottomRef} />
         </div>
-
         <div className="input-area">
           <input
-            type="text"
-            placeholder={activeThread ? "Ask a healthcare question..." : "Start a new chat to begin"}
             value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={handleKeyPress}
-            disabled={!activeThread}
+            onChange={e => setInput(e.target.value)}
+            onKeyPress={handleKeyPress}
+            placeholder="Type your message..."
           />
-          <button onClick={sendMessage} disabled={loading || !activeThread}>
-            {loading ? '...' : 'Send'}
+          <button onClick={sendMessage} disabled={loading}>
+            Send
           </button>
         </div>
       </div>
