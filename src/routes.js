@@ -43,7 +43,6 @@ async function generateKeyTakeaways(conversationHistory) {
   }
 }
 
-// ✅ Create user using Cognito token
 router.post("/create-user", async (req, res) => {
   try {
     const { userId, name, jobTitle, workplace } = await verifyToken(req);
