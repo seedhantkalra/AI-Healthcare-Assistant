@@ -77,7 +77,6 @@ router.post("/chat", async (req, res) => {
     const conversation = await Conversation.findOne({ userId });
     if (!conversation) return res.status(404).json({ error: "No conversation found." });
 
-    // Setup session chat history
     if (!req.session.conversationHistory) {
       req.session.conversationHistory = [];
     }
