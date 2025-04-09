@@ -66,6 +66,7 @@ router.post("/create-user", async (req, res) => {
   }
 });
 
+// ✅ Chat using token identity only
 router.post("/chat", async (req, res) => {
   try {
     const { message } = req.body;
