@@ -59,9 +59,9 @@ router.post("/create-user", async (req, res) => {
       lastUpdated: new Date(),
     });
 
-    res.json({ message: "✅ User created!", conversation });
+    res.json({ message: "User created!", conversation });
   } catch (error) {
-    console.error("❌ User creation failed:", error.message);
+    console.error("User creation failed:", error.message);
     res.status(401).json({ error: error.message });
   }
 });
