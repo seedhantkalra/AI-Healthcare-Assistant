@@ -3,13 +3,13 @@ import CryptoJS from "crypto-js";
 
 const safeDecrypt = (value, fieldName) => {
     if (!value || typeof value !== "string") return null;
-    if (!value.startsWith("U2FsdGVkX1")) return value; // If not encrypted, return as is
+    if (!value.startsWith("U2FsdGVkX1")) return value;
 
     try {
         const decryptedText = CryptoJS.AES.decrypt(value, process.env.ENCRYPTION_KEY).toString(CryptoJS.enc.Utf8);
         return decryptedText || `ERROR: Unable to decrypt ${fieldName}`;
     } catch (error) {
-        console.error(`❌ Error decrypting ${fieldName}:`, error.message);
+        console.error(`Error decrypting ${fieldName}:`, error.message);
         return `ERROR: Unable to decrypt ${fieldName}`;
     }
 };
@@ -48,7 +48,6 @@ const conversationSchema = new mongoose.Schema({
     lastUpdated: { type: Date, default: Date.now }
 });
 
-// Enable getters when converting MongoDB objects
 conversationSchema.set("toJSON", { getters: true });
 
 const Conversation = mongoose.model("Conversation", conversationSchema);
