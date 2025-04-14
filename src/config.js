@@ -17,7 +17,7 @@ export const encrypt = (text) => {
   const cipher = crypto.createCipheriv(
     'aes-256-cbc',
     Buffer.from(encryptionSecret, 'utf8').slice(0, 32),
-    Buffer.from(encryptionSecret, 'utf8').slice(0, 16) // IV
+    Buffer.from(encryptionSecret, 'utf8').slice(0, 16)
   );
 
   let encrypted = cipher.update(text, 'utf8', 'hex');

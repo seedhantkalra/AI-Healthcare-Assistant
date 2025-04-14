@@ -2,7 +2,7 @@
 
 import jwt from 'jsonwebtoken';
 
-const SECRET = 'my-test-secret'; // must match generateToken.js
+const SECRET = 'my-test-secret';
 
 export const verifyToken = (req) => {
   return new Promise((resolve, reject) => {

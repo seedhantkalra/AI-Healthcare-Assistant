@@ -56,16 +56,15 @@ async function cleanExpiredMemories() {
       const THIRTY_DAYS = 30 * 24 * 60 * 60 * 1000;
       const expiryDate = new Date(Date.now() - THIRTY_DAYS);
 
-      // ✅ Remove old key ideas from all users
       await Conversation.updateMany({}, { 
           $pull: { keyIdeas: { timestamp: { $lt: expiryDate } } }
       });
 
-      console.log("🧹 Old key takeaways removed from memory.");
+      console.log("Old key takeaways removed from memory.");
   } catch (error) {
-      console.error("❌ Error cleaning expired memories:", error);
+      console.error("Error cleaning expired memories:", error);
   }
 }
 
-// ✅ Run cleanup every 24 hours
+// Run cleanup every 24 hours
 setInterval(cleanExpiredMemories, 24 * 60 * 60 * 1000);

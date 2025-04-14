@@ -59,7 +59,7 @@ router.post("/create-user", async (req, res) => {
       lastUpdated: new Date(),
     });
 
-    res.json({ message: "User created!", conversation });
+    res.json({ message: "User created...", conversation });
   } catch (error) {
     console.error("User creation failed:", error.message);
     res.status(401).json({ error: error.message });
@@ -85,7 +85,6 @@ router.post("/chat", async (req, res) => {
       req.session.conversationHistory.shift();
     }
 
-    // Prepare prompt context
     const userContext = [
       { role: "system", content: `The user's name is ${name}.` },
       { role: "system", content: `The user's job title is ${jobTitle}.` },
@@ -112,7 +111,6 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
       },
     ];
 
-    // Get AI response
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -135,7 +133,6 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
     const aiMessage = { role: "assistant", content: aiMessageContent };
     req.session.conversationHistory.push(aiMessage);
 
-    // 🔍 Generate & store summary
     const threadText = req.session.conversationHistory.map(m =>
       `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`
     ).join('\n');
@@ -170,7 +167,7 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
 
     res.json({ response: aiMessageContent });
   } catch (error) {
-    console.error("❌ Chat Error:", error.message);
+    console.error("Chat Error:", error.message);
     res.status(401).json({ error: error.message });
   }
 });
