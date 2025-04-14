@@ -1,10 +1,12 @@
+/* Wrapper for a single chat message */
 .chat-message-wrapper {
   display: flex;
   flex-direction: column;
   width: 100%;
-  margin-bottom: 10px;
+  margin-bottom: 10px; /* Adds spacing between messages */
 }
 
+/* Styling for user messages (right aligned) */
 .chat-message.user {
   align-self: flex-end;
   background-color: #dbeafe;
@@ -16,6 +18,7 @@
   white-space: pre-wrap;
 }
 
+/* Styling for AI assistant messages (left aligned) */
 .chat-message.assistant {
   align-self: flex-start;
   background-color: #f3f4f6;
@@ -27,6 +30,7 @@
   white-space: pre-wrap;
 }
 
+/* Optional sender label above each message */
 .sender-label {
   font-size: 0.85rem;
   font-weight: bold;

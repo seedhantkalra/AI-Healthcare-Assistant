@@ -1,17 +1,21 @@
 import React from "react";
 import "./ChatMessage.css";
 
+
+// Defines the structure of a single chat message
 interface Message {
-  role: "user" | "assistant";
-  content: string;
+  role: "user" | "assistant"; // Indicates who sent the message
+  content: string;            // The actual message text
 }
 
+// Props expected by the ChatMessage component
 interface Props {
   message: Message;
 }
 
+// ChatMessage renders a single message bubble
 function ChatMessage({ message }: Props) {
-  const isUser = message.role === "user";
+  const isUser = message.role === "user"; // Check if the sender is the user
 
   return (
     <div className="chat-message-wrapper">
