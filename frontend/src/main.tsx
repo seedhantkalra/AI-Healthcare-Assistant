@@ -5,7 +5,7 @@ import './index.css';
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
-    <div className="chat-wrapper"> {/* ✅ Wrap here */}
+    <div className="chat-wrapper"> {/* Wrap here */}
       <App />
     </div>
   </React.StrictMode>

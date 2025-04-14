@@ -248,7 +248,7 @@ h1 {
 
 .tabs {
   display: flex;
-  flex-direction: row;         /* ensures horizontal layout */
+  flex-direction: row;       
   flex-wrap: wrap;
   justify-content: flex-start;
   gap: 0.5rem;
