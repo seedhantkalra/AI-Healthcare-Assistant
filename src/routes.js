@@ -6,8 +6,16 @@ import { verifyToken } from "../utils/auth.js";
 import { encrypt } from "./config.js"; 
 
 dotenv.config();
+
+
+// Create router instance for mounting API endpoints
 export const router = express.Router();
 
+/**
+ * Helper: Generates key takeaways from full conversation history.
+ * - Uses GPT-4o-mini to analyze the full conversation and return 2–3 discussion-specific insights.
+ * - These are stored in MongoDB for long-term memory.
+ */
 async function generateKeyTakeaways(conversationHistory) {
   try {
     const response = await axios.post(
@@ -31,25 +39,35 @@ async function generateKeyTakeaways(conversationHistory) {
       }
     );
 
+    // Clean and filter the AI's summary points
     const keyTakeaways = response.data.choices?.[0]?.message?.content
       .split("\n")
       .map((point) => point.trim())
       .filter((point) => point.length > 10);
 
-    return [...new Set(keyTakeaways)];
+    return [...new Set(keyTakeaways)]; // Remove duplicates
   } catch (error) {
     console.error("Error generating key takeaways:", error.response?.data || error.message);
     return [];
   }
 }
 
+/**
+ * ✅ POST /api/create-user
+ * - Creates a new user in MongoDB if they don't exist already.
+ * - Encrypts name, jobTitle, and workplace before saving.
+ */
 router.post("/create-user", async (req, res) => {
   try {
+
+    // Decode user info from token
     const { userId, name, jobTitle, workplace } = await verifyToken(req);
 
+    // Prevent duplicate user creation
     const exists = await Conversation.findOne({ userId });
     if (exists) return res.json({ message: "User already exists." });
 
+    // Create new user conversation document
     const conversation = await Conversation.create({
       userId,
       name: encrypt(name),
@@ -66,25 +84,40 @@ router.post("/create-user", async (req, res) => {
   }
 });
 
+/**
+ * POST /api/chat
+ * - Handles user message submission, AI reply, session memory, and memory summarization.
+ */
 router.post("/chat", async (req, res) => {
   try {
+
     const { message } = req.body;
     if (!message) return res.status(400).json({ error: "Message is required." });
 
+    // Decode user details from token
     const { userId, name, jobTitle, workplace } = await verifyToken(req);
 
+    // Retrieve user's conversation doc from DB
     const conversation = await Conversation.findOne({ userId });
     if (!conversation) return res.status(404).json({ error: "No conversation found." });
 
+    // Initialize session-based short-term memory if needed
     if (!req.session.conversationHistory) {
       req.session.conversationHistory = [];
     }
 
+    // Add user message to session memory
     req.session.conversationHistory.push({ role: "user", content: message });
+
+    // Keep only last 20 messages
     if (req.session.conversationHistory.length > 20) {
       req.session.conversationHistory.shift();
     }
-
+  
+    /**
+     * Build system prompt with context for GPT
+     * - Includes user info + behavioral instructions
+     */
     const userContext = [
       { role: "system", content: `The user's name is ${name}.` },
       { role: "system", content: `The user's job title is ${jobTitle}.` },
@@ -111,6 +144,7 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
       },
     ];
 
+    // Send full conversation + context to OpenAI
     const response = await axios.post(
       "https://api.openai.com/v1/chat/completions",
       {
@@ -130,9 +164,14 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
       return res.status(500).json({ error: "AI did not respond." });
     }
 
+    // Add AI reply to session memory
     const aiMessage = { role: "assistant", content: aiMessageContent };
     req.session.conversationHistory.push(aiMessage);
 
+    /**
+     * Generate a long-term memory summary (key idea)
+     * - AI summarizes the conversation in 1–2 sentences
+     */
     const threadText = req.session.conversationHistory.map(m =>
       `${m.role === 'user' ? 'User' : 'AI'}: ${m.content}`
     ).join('\n');
@@ -156,15 +195,18 @@ A: That's Paris! I usually help with healthcare and work-related topics, but fee
 
     const summary = summaryRes.data.choices?.[0]?.message?.content?.trim();
     if (summary) {
+      // Append to user's long-term memory in MongoDB
       conversation.keyIdeas.push({
         content: summary,
         timestamp: Date.now(),
       });
     }
 
+    // Update last modified timestamp and save
     conversation.lastUpdated = new Date();
     await conversation.save();
 
+    // Send AI response back to frontend
     res.json({ response: aiMessageContent });
   } catch (error) {
     console.error("Chat Error:", error.message);
