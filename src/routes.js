@@ -53,7 +53,7 @@ async function generateKeyTakeaways(conversationHistory) {
 }
 
 /**
- * ✅ POST /api/create-user
+ * POST /api/create-user
  * - Creates a new user in MongoDB if they don't exist already.
  * - Encrypts name, jobTitle, and workplace before saving.
  */
